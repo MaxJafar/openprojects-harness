@@ -1,0 +1,46 @@
+[Unit]
+Description=OpenProjects private local harness
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+User=openprojects
+Group=openprojects
+WorkingDirectory=/opt/openprojects
+EnvironmentFile=-/etc/openprojects/openprojects.env
+ExecStart=/usr/bin/node /opt/openprojects/dist/src/cli.js serve --config /etc/openprojects/openprojects.private.yaml
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+
+# Process/filesystem hardening. OpenProjects still trusts its installed code,
+# config, skills, local model server, and model files.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/openprojects
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Sealed profile: permit only IPv4/IPv6 loopback so the harness can reach its
+# local model/embedding server. This deliberately prevents Telegram delivery.
+# Confirm that the host's systemd/kernel actually enforce these directives and
+# run a negative egress test before making an isolation or residency claim.
+IPAddressDeny=any
+IPAddressAllow=127.0.0.0/8
+IPAddressAllow=::1/128
+
+[Install]
+WantedBy=multi-user.target

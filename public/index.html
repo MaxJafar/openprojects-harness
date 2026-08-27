@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="OpenProjects — a transparent control surface for project operations agents."
+    />
+    <meta name="theme-color" content="#12221a" />
+    <title>OpenProjects · Operations harness</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-shell">
+      <header class="product-header">
+        <div class="header-glow" aria-hidden="true"></div>
+        <div class="header-inner">
+          <a class="brand" href="/" aria-label="OpenProjects home">
+            <span class="brand-mark" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            <span>
+              <strong>OpenProjects</strong>
+              <small>Operations harness</small>
+            </span>
+          </a>
+
+          <div class="header-actions">
+            <div class="health-pill" id="health-pill" role="status" aria-live="polite">
+              <span class="health-dot" aria-hidden="true"></span>
+              <span id="health-label">Connecting</span>
+            </div>
+            <button class="icon-button" id="refresh-button" type="button" aria-label="Refresh dashboard">
+              <span aria-hidden="true">↻</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="header-summary" aria-label="Harness information">
+          <div>
+            <span class="summary-label">Agent</span>
+            <strong id="meta-agent">Loading…</strong>
+          </div>
+          <div>
+            <span class="summary-label">Model</span>
+            <strong id="meta-model">Loading…</strong>
+          </div>
+          <div>
+            <span class="summary-label">Policy</span>
+            <strong id="meta-policy">Loading…</strong>
+          </div>
+          <p class="header-note" id="meta-note">Establishing a local connection.</p>
+        </div>
+      </header>
+
+      <main id="main-content" class="dashboard" tabindex="-1">
+        <div class="notice" id="notice" role="alert" hidden>
+          <span class="notice-mark" aria-hidden="true">!</span>
+          <span id="notice-text"></span>
+          <button id="notice-dismiss" type="button" aria-label="Dismiss notification">×</button>
+        </div>
+
+        <section class="command-section" aria-labelledby="command-title">
+          <div class="section-kicker"><span>01</span> Command the harness</div>
+          <div class="command-grid">
+            <div class="command-copy">
+              <p class="eyebrow">Project intelligence, with receipts</p>
+              <h1 id="command-title">Ask once. See every decision.</h1>
+              <p>
+                Investigate project state, surface blockers, or prepare the next move. OpenProjects keeps
+                the complete reasoning trail visible and pauses before consequential actions.
+              </p>
+              <div class="trust-row" aria-label="Harness guarantees">
+                <span><i aria-hidden="true">✓</i> Evidence-backed</span>
+                <span><i aria-hidden="true">✓</i> Approval-gated</span>
+                <span><i aria-hidden="true">✓</i> Replayable trace</span>
+              </div>
+            </div>
+
+            <form class="composer" id="run-form">
+              <div class="composer-topline">
+                <label for="project-select">Project context</label>
+                <select id="project-select" name="projectId">
+                  <option value="">All projects</option>
+                </select>
+              </div>
+
+              <label class="visually-hidden" for="prompt-input">What should the agent investigate?</label>
+              <textarea
+                id="prompt-input"
+                name="message"
+                rows="5"
+                maxlength="4000"
+                required
+                placeholder="What should the agent investigate?"
+                aria-describedby="composer-hint prompt-count"
+              ></textarea>
+
+              <div class="example-row" aria-label="Example prompts">
+                <button type="button" class="prompt-chip" data-prompt="Show me every blocked task and the evidence behind it.">Find blockers</button>
+                <button type="button" class="prompt-chip" data-prompt="Draft a concise follow-up for the highest-risk project.">Draft follow-up</button>
+                <button type="button" class="prompt-chip" data-prompt="What changed across active projects this week?">Weekly changes</button>
+              </div>
+
+              <div class="composer-footer">
+                <span id="composer-hint"><kbd>⌘</kbd><kbd>↵</kbd> to run</span>
+                <span id="prompt-count" aria-live="polite">0 / 4,000</span>
+                <button class="run-button" id="run-button" type="submit">
+                  <span class="run-button-label">Run agent</span>
+                  <span class="run-button-arrow" aria-hidden="true">↗</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="projects-section" aria-labelledby="projects-title">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker"><span>02</span> Portfolio pulse</div>
+              <h2 id="projects-title">Projects in view</h2>
+            </div>
+            <p id="projects-summary">Loading the local workspace…</p>
+          </div>
+          <div class="project-grid" id="project-grid" aria-live="polite" aria-busy="true"></div>
+        </section>
+
+        <section class="runs-section" aria-labelledby="runs-title">
+          <div class="section-heading runs-heading">
+            <div>
+              <div class="section-kicker"><span>03</span> Live operations</div>
+              <h2 id="runs-title">Runs &amp; trace</h2>
+            </div>
+            <div class="legend" aria-label="Run status legend">
+              <span><i class="legend-dot running"></i> Live</span>
+              <span><i class="legend-dot waiting"></i> Needs you</span>
+              <span><i class="legend-dot complete"></i> Complete</span>
+            </div>
+          </div>
+
+          <div class="operations-grid">
+            <aside class="run-panel" aria-labelledby="recent-runs-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Activity</p>
+                  <h3 id="recent-runs-title">Recent runs</h3>
+                </div>
+                <span class="count-badge" id="run-count">0</span>
+              </div>
+              <div class="run-list" id="run-list" aria-live="polite" aria-busy="true"></div>
+            </aside>
+
+            <section class="trace-panel" id="trace-panel" aria-label="Run trace">
+              <div class="empty-trace" id="empty-trace">
+                <div class="empty-orbit" aria-hidden="true"><span></span></div>
+                <p class="eyebrow">Trace explorer</p>
+                <h3 id="trace-title">Select a run to inspect it</h3>
+                <p>Every model turn, tool call, approval, and result will appear here in order.</p>
+              </div>
+
+              <div id="trace-content" hidden>
+                <header class="trace-header">
+                  <div>
+                    <div class="trace-meta-row">
+                      <span class="status-badge" id="detail-status">Queued</span>
+                      <span id="detail-time">Just now</span>
+                      <span id="detail-id">—</span>
+                    </div>
+                    <h3 id="detail-title">Run details</h3>
+                    <p id="detail-project">All projects</p>
+                  </div>
+                  <button class="copy-button" id="copy-run-id" type="button">Copy run ID</button>
+                </header>
+
+                <section class="approval-zone" id="approval-zone" aria-labelledby="approval-title" hidden>
+                  <div class="approval-zone-heading">
+                    <div>
+                      <p class="eyebrow">Human checkpoint</p>
+                      <h4 id="approval-title">Approval required</h4>
+                    </div>
+                    <span id="approval-count">1 pending</span>
+                  </div>
+                  <div id="approval-list"></div>
+                </section>
+
+                <div class="timeline" id="timeline" aria-label="Chronological run trace"></div>
+
+                <section class="feedback-zone" id="feedback-zone" aria-labelledby="feedback-title" hidden>
+                  <div>
+                    <p class="eyebrow">Train the taste layer</p>
+                    <h4 id="feedback-title">How did this response land?</h4>
+                    <p>Your signal is saved with this run for future preference training.</p>
+                  </div>
+                  <div class="feedback-actions" id="feedback-actions">
+                    <button type="button" data-reaction="helpful" data-score="1" data-dimension="helpfulness">
+                      <span aria-hidden="true">↑</span> Helpful
+                    </button>
+                    <button type="button" data-reaction="funny" data-score="1" data-dimension="humor">
+                      <span aria-hidden="true">✦</span> Funny
+                    </button>
+                    <button type="button" data-reaction="needs_work" data-score="-1" data-dimension="helpfulness">
+                      <span aria-hidden="true">↓</span> Needs work
+                    </button>
+                  </div>
+                  <p class="feedback-confirmation" id="feedback-confirmation" role="status" hidden></p>
+                </section>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p><span class="footer-mark" aria-hidden="true"></span> Local-first project operations</p>
+        <p>OpenProjects <span id="footer-version">v0.6.0</span></p>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+  </body>
+</html>

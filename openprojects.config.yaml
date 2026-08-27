@@ -1,0 +1,120 @@
+version: 1
+
+agent:
+  id: project-ops
+  version: 0.6.0
+  name: OpenProjects Ops Agent
+  skills:
+    - project-operations
+  tools:
+    - project_list
+    - project_get
+    - project_risk_report
+    - oracle_search
+    - oracle_sources
+    - task_list
+    - task_create
+    - draft_followup
+    - send_followup
+    - memory_search
+    - memory_remember
+    - delegate_agent
+  budgets:
+    maxSteps: 8
+    maxToolCalls: 16
+    maxWallTimeMs: 120000
+    maxInputTokens: 24000
+    reservedOutputTokens: 4096
+
+policy:
+  read: allow
+  draft: allow
+  memory_write: allow
+  internal_write: ask
+  external_write: ask
+  destructive: deny
+
+server:
+  host: 127.0.0.1
+  port: 4310
+
+storage:
+  database: ./data/openprojects.db
+
+# Private-by-default egress boundary. Loopback is always permitted. A corporate
+# LAN service must be listed as an exact origin, including scheme and port.
+privacy:
+  localOnly: true
+  allowedOrigins: []
+
+# Telegram's public Bot API is external SaaS. Keep this disabled for a fully
+# private deployment. A Telegram-compatible corporate gateway must be enabled
+# here and its origin explicitly added to privacy.allowedOrigins.
+telegram:
+  enabled: false
+  apiBaseUrl: https://api.telegram.org
+
+model:
+  provider: mock
+  model: project-ops-v1
+
+# Optional cost/quality routes. FreeToken, MLX-LM, and llama.cpp have dedicated
+# strict providers; Ollama, vLLM, and reviewed services can use the generic
+# OpenAI-compatible boundary. An empty list preserves the single model above.
+routing:
+  dailyBudgetUsd: 2
+  explorationRate: 0.03
+  routes:
+    - id: demo-local
+      provider: mock
+      model: project-ops-v1
+      tasks:
+        - supervisor
+        - project_analysis
+        - memory_curator
+        - summarization
+        - notification
+      local: true
+      enabled: true
+      quality: 0.8
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 32000
+
+memory:
+  retrievalLimit: 6
+  maxContextCharacters: 8000
+
+learning:
+  enabled: true
+  groupObservation: true
+  minimumSalience: 0.55
+  feedbackLearningRate: 0.2
+  retentionDays: 180
+
+# builtin is an offline deterministic fallback. Set provider to ollama and use
+# a local embedding model for semantic retrieval. The separately managed Ollama
+# daemon must also be started with OLLAMA_NO_CLOUD=1 in the private profile.
+embeddings:
+  provider: builtin
+  model: builtin-hash-v1
+  dimensions: 256
+  timeoutMs: 3000
+
+transcription:
+  provider: disabled
+  command: whisper-cli
+  ffmpegCommand: ffmpeg
+  timeoutMs: 180000
+  maxBytes: 25000000
+  maxDurationSeconds: 1200
+
+notifications:
+  enabled: true
+  intervalMs: 60000
+  lookaheadHours: 48
+
+subagents:
+  maxCallsPerRun: 4
+  maxParallel: 2
+  maxDepth: 1

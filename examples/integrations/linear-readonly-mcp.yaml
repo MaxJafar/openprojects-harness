@@ -1,0 +1,38 @@
+# Qualification template: replace the peer identity only after recording it
+# with a separately reviewed staging client. Then run integrations check --probe
+# and a non-production tool call before granting this tool to an agent.
+schema: openprojects.integration.v1
+id: linear.mcp.readonly
+workspaces: [local]
+transport:
+  kind: mcp-http
+  endpoint: https://mcp.linear.app/mcp/readonly
+  bearerTokenEnv: OP_LINEAR_MCP_READ_TOKEN
+  protocol: auto
+  expectedServerName: REPLACE_WITH_PROBED_SERVER_NAME
+  expectedServerVersion: REPLACE_WITH_PROBED_SERVER_VERSION
+  maxWireBytes: 262144
+  startupTimeoutMs: 15000
+  maxPendingRequests: 1
+tools:
+  - name: linear_mcp_list_issues
+    remoteName: list_issues
+    description: List issues through Linear's official read-only MCP endpoint. The reviewed token and endpoint must be scoped to the intended workspace.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties: {}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        issues: {type: array, items: {}}
+      required: [issues]
+    effect: read
+    idempotency: read
+    dataBoundary: external
+    limits:
+      timeoutMs: 15000
+      maxRequestBytes: 8192
+      maxResponseBytes: 131072
+      maxTextBytes: 65536

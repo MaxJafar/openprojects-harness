@@ -1,0 +1,108 @@
+name: Cross-platform qualification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 24.04 x64
+            id: ubuntu-24.04-x64
+            runner: ubuntu-24.04
+            platform: linux
+            architecture: x64
+          - name: Windows Server 2025 x64
+            id: windows-2025-x64
+            runner: windows-2025
+            platform: win32
+            architecture: x64
+          - name: macOS 15 arm64
+            id: macos-15-arm64
+            runner: macos-15
+            platform: darwin
+            architecture: arm64
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.11.1
+          cache: npm
+          package-manager-cache: true
+
+      - name: Set up Python
+        if: ${{ matrix.platform != 'win32' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12.10'
+
+      - name: Qualify native platform and emit evidence
+        env:
+          OPENPROJECTS_EXPECTED_ARCH: ${{ matrix.architecture }}
+          OPENPROJECTS_EXPECTED_PLATFORM: ${{ matrix.platform }}
+          OPENPROJECTS_PYTHON: ${{ matrix.platform != 'win32' && 'python' || '' }}
+          QUALIFICATION_OUTPUT: ${{ runner.temp }}/openprojects-qualification-${{ matrix.id }}
+        run: npm run qualify:platform
+
+      - name: Upload qualification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: qualification-${{ matrix.id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/openprojects-qualification-${{ matrix.id }}
+          if-no-files-found: error
+          retention-days: 14
+
+  framework-interop:
+    name: AI SDK/MCP · ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 24.04 x64
+            runner: ubuntu-24.04
+          - name: Windows Server 2025 x64
+            runner: windows-2025
+          - name: macOS 15 arm64
+            runner: macos-15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.11.1
+          cache: npm
+          package-manager-cache: true
+          cache-dependency-path: examples/frameworks/ai-sdk-mcp/package-lock.json
+
+      - name: Install isolated example dependencies
+        run: npm ci --ignore-scripts --prefix examples/frameworks/ai-sdk-mcp
+
+      - name: Verify bounded AI SDK/MCP interoperability
+        run: npm run check --prefix examples/frameworks/ai-sdk-mcp
+
+      - name: Audit framework production dependencies
+        run: npm audit --omit=dev --audit-level=high --prefix examples/frameworks/ai-sdk-mcp

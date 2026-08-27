@@ -1,0 +1,5 @@
+# Semantics-critical runtime pinned for the reviewed v1 MLX execution path.
+mlx-lm[train]==0.31.3
+mlx==0.31.2
+# mlx-lm 0.31.3 predates upstream PR #1465 and must remain below Transformers 5.13.
+transformers==5.12.1

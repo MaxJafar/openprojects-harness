@@ -1,0 +1,4 @@
+# Defense in depth when this nested package is packed independently or through
+# the parent package's examples allowlist.
+node_modules/
+dist/

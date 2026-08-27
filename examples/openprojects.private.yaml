@@ -1,0 +1,149 @@
+# Private-corporate profile: every inference dependency is loopback-only and
+# hosted fallback is intentionally absent. The application policy below blocks
+# non-loopback HTTP clients owned by the harness. It is not a host firewall and
+# cannot constrain plugins, child processes, or the separate model server.
+version: 1
+
+agent:
+  id: project-ops-private
+  version: 0.6.0
+  name: OpenProjects Private Ops Agent
+  skills:
+    - project-operations
+  tools:
+    - project_list
+    - project_get
+    - project_risk_report
+    - oracle_search
+    - oracle_sources
+    - task_list
+    - task_create
+    - draft_followup
+    - send_followup
+    - memory_search
+    - memory_remember
+    - delegate_agent
+  budgets:
+    maxSteps: 8
+    maxToolCalls: 16
+    maxWallTimeMs: 120000
+    maxInputTokens: 24000
+    reservedOutputTokens: 4096
+
+# The private baseline can read, draft, and update local memory. External sends
+# remain unavailable even if the model asks for one.
+policy:
+  read: allow
+  draft: allow
+  memory_write: allow
+  internal_write: ask
+  external_write: deny
+  destructive: deny
+
+# Keep the authenticated control plane on an owner-only Unix socket. Tokens are
+# provisioned separately with mode 0600 and are never stored in this YAML.
+# Run the TUI under an audited service identity; no TCP listener is opened.
+server:
+  host: 127.0.0.1
+  port: 4310
+  socketPath: /var/lib/openprojects/control.sock
+  auth:
+    principals:
+      - id: local-admin
+        tokenFile: /var/lib/openprojects/control.token
+        capabilities:
+          - admin
+
+storage:
+  database: /var/lib/openprojects/openprojects.db
+
+# Enforced for model, embedding, and enabled Telegram HTTP clients owned by the
+# harness. Exact corporate origins can be added for a different reviewed
+# profile; none are needed or permitted in this sealed single-machine profile.
+privacy:
+  localOnly: true
+  allowedOrigins: []
+
+# Telegram is external SaaS and cannot operate under the sealed egress profile.
+telegram:
+  enabled: false
+  apiBaseUrl: https://api.telegram.org
+
+# Required base-model declaration. The router below handles all live requests.
+# Ollama's OpenAI-compatible endpoint must also remain on loopback. This is the
+# convenient 32 GB-class pilot profile; pin llama.cpp/model artifacts for a
+# reproducible Apple production image after qualification.
+model:
+  provider: ollama
+  model: qwen3.5:9b
+  baseUrl: http://127.0.0.1:11434/v1
+
+routing:
+  externalInference: deny
+  preferLocal: true
+  allowRemoteFallback: false
+  dailyBudgetUsd: 0
+  explorationRate: 0
+  routes:
+    - id: private-local-qwen
+      provider: ollama
+      model: qwen3.5:9b
+      generation: reviewed-local-qwen-2026-08
+      baseUrl: http://127.0.0.1:11434/v1
+      tasks:
+        - supervisor
+        - project_analysis
+        - memory_curator
+        - summarization
+        - notification
+      local: true
+      enabled: true
+      quality: 0.75
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 32768
+
+memory:
+  retrievalLimit: 6
+  maxContextCharacters: 8000
+
+learning:
+  enabled: true
+  # There is no group transport in the sealed baseline. Enable observation only
+  # after choosing and documenting a transport and completing participant opt-in.
+  groupObservation: false
+  minimumSalience: 0.55
+  feedbackLearningRate: 0.2
+  retentionDays: 90
+
+embeddings:
+  provider: ollama
+  model: bge-m3:latest
+  baseUrl: http://127.0.0.1:11434
+  # Exact digest from the recorded M3 qualification; replace model and digest together.
+  serviceDigest: 7907646426070047a77226ac3e684fbbe8410524f7b4a74d02837e43f2146bab
+  dimensions: 1024
+  timeoutMs: 30000
+
+# Voice remains unavailable until reviewed local whisper.cpp/FFmpeg binaries and
+# an on-disk model are installed. There is no cloud transcription fallback.
+transcription:
+  provider: disabled
+  command: /usr/local/bin/whisper-cli
+  modelPath: /var/lib/openprojects/models/ggml-small.bin
+  ffmpegCommand: /usr/bin/ffmpeg
+  timeoutMs: 180000
+  maxBytes: 25000000
+  maxDurationSeconds: 1200
+
+# Telegram delivery is disabled in this profile because Telegram necessarily
+# crosses the machine boundary. Internal transport integration is future work.
+notifications:
+  enabled: false
+  intervalMs: 60000
+  lookaheadHours: 48
+
+subagents:
+  maxCallsPerRun: 4
+  maxParallel: 2
+  maxDepth: 1

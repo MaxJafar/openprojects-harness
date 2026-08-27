@@ -1,0 +1,30 @@
+{
+  "name": "@openprojects/ai-sdk-mcp-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional, bounded Vercel AI SDK and MCP interoperability example for OpenProjects.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "demo": "node dist/src/ai-sdk-agent.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@ai-sdk/mcp": "2.0.39",
+    "@ai-sdk/openai-compatible": "3.0.39",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "ai": "7.0.83",
+    "zod": "4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "typescript": "5.9.2"
+  }
+}

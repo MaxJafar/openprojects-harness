@@ -1,0 +1,43 @@
+{
+  "schema": "openprojects.appliance-qualification.v1",
+  "requiredCapabilities": [
+    "text"
+  ],
+  "requirePins": true,
+  "pins": {
+    "route:local-moe-quality": {
+      "provider": "freetoken",
+      "model": "openprojects-qwen36-moe",
+      "artifacts": [
+        {
+          "path": "/absolute/path/to/reviewed-freetoken-checkpoint/config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/absolute/path/to/reviewed-freetoken-checkpoint/model.safetensors.index.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/absolute/path/to/reviewed-freetoken-checkpoint/model-00001-of-NNNNN.safetensors",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "maxContextTokens": 8192,
+      "maxConcurrency": 1,
+      "runtime": {
+        "implementation": "freetoken",
+        "version": "replace-with-exact-version-and-build-stamp",
+        "artifacts": [
+          {
+            "path": "/absolute/path/to/freetoken-wheel-or-desktop-engine-asset",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "path": "/absolute/path/to/freetoken-runtime-lock.txt",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      }
+    }
+  }
+}

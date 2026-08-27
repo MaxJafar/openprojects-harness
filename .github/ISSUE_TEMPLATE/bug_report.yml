@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible OpenProjects defect without private data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report vulnerabilities or include credentials, chats, audio, databases, customer data, or unredacted logs here. Follow SECURITY.md for private reporting.
+  - type: input
+    id: version
+    attributes:
+      label: OpenProjects version
+      placeholder: 0.4.0
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, architecture, Node.js version, and relevant local runtime names. Do not include secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic data and list the smallest deterministic steps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Paste only the smallest manually reviewed, secret-free excerpt.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed all credentials, private data, databases, chats, audio, model artifacts, and identifying logs.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

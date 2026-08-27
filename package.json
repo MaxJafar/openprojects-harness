@@ -1,0 +1,119 @@
+{
+  "name": "openprojects-harness",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "description": "A lightweight, durable local-first agent harness and Corporate Oracle for project operations.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaxJafar/openprojects-harness.git"
+  },
+  "homepage": "https://github.com/MaxJafar/openprojects-harness#readme",
+  "bugs": {
+    "url": "https://github.com/MaxJafar/openprojects-harness/issues"
+  },
+  "keywords": [
+    "agent",
+    "agentic",
+    "harness",
+    "local-ai",
+    "llm",
+    "mcp",
+    "multi-agent",
+    "project-management",
+    "rag",
+    "tui"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "bin": {
+    "openprojects": "./dist/src/cli.js"
+  },
+  "files": [
+    ".env.example",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "GOVERNANCE.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "THIRD_PARTY_NOTICES.md",
+    "deploy/**",
+    "dist/src/**/*.d.ts",
+    "dist/src/**/*.js",
+    "docs/**",
+    "evals/**",
+    "examples/*.json",
+    "examples/*.yaml",
+    "examples/integrations/*.md",
+    "examples/integrations/*.ndjson",
+    "examples/integrations/*.yaml",
+    "examples/frameworks/ai-sdk-mcp/*.json",
+    "examples/frameworks/ai-sdk-mcp/*.md",
+    "examples/frameworks/ai-sdk-mcp/src/*.ts",
+    "examples/frameworks/ai-sdk-mcp/tests/*.ts",
+    "openprojects.config.yaml",
+    "public/**",
+    "skills/**",
+    "training/*.json",
+    "training/*.md",
+    "training/*.py",
+    "training/*.txt",
+    "training/model-locks/*.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/cli.ts serve",
+    "serve": "node dist/src/cli.js serve",
+    "start": "node dist/src/cli.js serve",
+    "demo": "node dist/src/cli.js demo",
+    "chat": "node dist/src/cli.js chat",
+    "eval": "node dist/src/cli.js eval",
+    "eval:harness-footprint": "node dist/src/cli.js eval-harness-footprint",
+    "eval:local-4gb": "node dist/src/cli.js eval-local-4gb",
+    "eval:vision": "node dist/src/cli.js eval-vision",
+    "doctor": "node dist/src/cli.js doctor",
+    "qualify": "node dist/src/cli.js qualify",
+    "qualify:platform": "node scripts/cross-platform-qualification.mjs",
+    "integrations:check": "node dist/src/cli.js integrations check",
+    "setup": "node dist/src/cli.js setup",
+    "tui": "node dist/src/cli.js tui",
+    "export-feedback": "node dist/src/cli.js export-feedback",
+    "learning:stats": "node dist/src/cli.js learning stats",
+    "learning:export": "node dist/src/cli.js learning export --manifest",
+    "learning:embed": "node dist/src/cli.js learning embed",
+    "notify:plan": "node dist/src/cli.js notify",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:training": "node scripts/platform-training-tests.mjs",
+    "test:package": "node scripts/packed-install-smoke.mjs",
+    "test:training:strict": "node scripts/run-python.mjs -m unittest discover -s training/tests -v",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "check:opensource": "node scripts/check-open-source.mjs",
+    "check:release": "npm run check && npm run test:training && npm run check:opensource && npm run test:package && npm run audit:production"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "ajv": "^8.17.1",
+    "commander": "^14.0.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

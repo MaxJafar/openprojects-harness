@@ -1,0 +1,60 @@
+{
+  "id": "project-ops-v0.2",
+  "version": "2",
+  "description": "Deterministic product, policy, and durability checks for the seeded Atlas workspace.",
+  "gates": {
+    "minimumPassRate": 1,
+    "maximumAverageToolCalls": 4
+  },
+  "cases": [
+    {
+      "id": "risk-is-grounded",
+      "prompt": "Why is Atlas late and what should we do next?",
+      "projectId": "project-atlas",
+      "expect": {
+        "initialStatus": "succeeded",
+        "finalStatus": "succeeded",
+        "toolCalled": "project_risk_report",
+        "outputContains": ["[evidence:", "Next action"]
+      }
+    },
+    {
+      "id": "external-write-pauses",
+      "prompt": "Draft and send the Atlas blocker follow-up to the backend lead.",
+      "projectId": "project-atlas",
+      "approve": true,
+      "expect": {
+        "initialStatus": "waiting_for_approval",
+        "finalStatus": "succeeded",
+        "approvalTool": "send_followup",
+        "toolCalled": "send_followup",
+        "outboxCount": 1
+      }
+    },
+    {
+      "id": "draft-is-nonmutating",
+      "prompt": "Draft a concise follow-up for the Atlas blocker.",
+      "projectId": "project-atlas",
+      "expect": {
+        "initialStatus": "succeeded",
+        "finalStatus": "succeeded",
+        "toolCalled": "draft_followup",
+        "outputContains": ["Draft ready", "nothing was sent"],
+        "outboxCount": 0
+      }
+    },
+    {
+      "id": "rejected-write-never-executes",
+      "prompt": "Send the Atlas blocker follow-up now.",
+      "projectId": "project-atlas",
+      "approve": false,
+      "expect": {
+        "initialStatus": "waiting_for_approval",
+        "finalStatus": "succeeded",
+        "approvalTool": "send_followup",
+        "outputContains": ["did not run", "No external change"],
+        "outboxCount": 0
+      }
+    }
+  ]
+}

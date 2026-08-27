@@ -1,0 +1,10 @@
+# Content-addressed manifests, fixtures, and source must retain identical bytes
+# across Windows, macOS, and Linux clones regardless of user autocrlf settings.
+* text=auto eol=lf
+
+# Evaluation media is always binary and must never receive line conversion.
+*.gif binary
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.wav binary

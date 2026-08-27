@@ -1,0 +1,36 @@
+# Merge these fields into a reviewed openprojects.config.yaml. Relative
+# manifest paths resolve from that config file's directory.
+integrations:
+  externalDataPolicy: ask
+  manifests:
+    - ./integrations/github-issues-read.yaml
+    - ./integrations/jira-project-search.yaml
+    - ./integrations/slack-bound-channel.yaml
+    - ./integrations/linear-team-read.yaml
+
+privacy:
+  localOnly: true
+  allowedOrigins:
+    - https://api.github.com
+    - https://api.atlassian.com
+    - https://slack.com
+    - https://api.linear.app
+
+# Add only the local names actually needed by the supervisor. Keep
+# project-analyst and other narrow lanes unchanged unless separately evaluated.
+agent:
+  tools:
+    - oracle_search
+    - oracle_sources
+    - github_issues_read
+    - jira_project_search
+    - slack_channel_history_read
+    - slack_channel_notify
+    - linear_team_issues_read
+
+# Retain the existing effect-policy fields. These two are the important
+# integration defaults: external reads still cross the external-data gate,
+# while the Slack notification remains a one-shot approval-controlled write.
+policy:
+  read: allow
+  external_write: ask

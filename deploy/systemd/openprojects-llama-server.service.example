@@ -1,0 +1,92 @@
+[Unit]
+Description=OpenProjects reviewed llama.cpp analyst candidate
+Documentation=https://github.com/ggml-org/llama.cpp/tree/c1d0e7a004015f23bc0233470b747b596f29b264/tools/server
+After=local-fs.target
+Before=openprojects-local.service
+
+[Service]
+Type=simple
+User=openprojects
+Group=openprojects
+UMask=0077
+Slice=openprojects-4gb.slice
+
+# This unit never downloads a model. Replace and review the binary hash in the
+# companion checksum file, install the owner-only key file, then verify both
+# artifacts before enabling the service.
+ExecStartPre=/usr/bin/sha256sum --check --strict /etc/openprojects/llama-server.sha256
+ExecStart=/opt/openprojects-llama/bin/llama-server \
+  --model /opt/openprojects-llama/models/granite-4.0-350m-Q8_0.gguf \
+  --alias granite-4.0-350m-q8@9595dafb \
+  --offline \
+  --host 127.0.0.1 \
+  --port 18080 \
+  --api-key-file /etc/openprojects/llama-server.keys \
+  --no-ui \
+  --no-ui-mcp-proxy \
+  --no-agent \
+  --no-slots \
+  --no-mmproj \
+  --parallel 1 \
+  --no-cont-batching \
+  --ctx-size 3072 \
+  --batch-size 256 \
+  --ubatch-size 64 \
+  --cache-type-k f16 \
+  --cache-type-v f16 \
+  --device none \
+  --gpu-layers 0 \
+  --cache-ram 64 \
+  --ctx-checkpoints 2 \
+  --no-cache-idle-slots \
+  --reasoning off \
+  --n-predict 512 \
+  --load-mode mmap \
+  --fit off \
+  --threads-http 1 \
+  --timeout 60 \
+  --sse-ping-interval -1
+
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=90s
+TimeoutStopSec=10s
+KillMode=control-group
+OOMPolicy=stop
+
+# Candidate budget. Passing this cgroup limit is necessary but not sufficient:
+# the versioned OpenProjects local-4GB evaluator also checks quality, identity,
+# namespaces, negative auth, kernel memory/swap peaks, cadence, and the exact
+# argv above. The evaluator does not prove that this particular unit or every
+# hardening directive below launched the process; review service state separately.
+MemoryHigh=1280M
+MemoryMax=1536M
+MemorySwapMax=64M
+TasksMax=64
+LimitNOFILE=1024
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Defense in depth around --offline: only loopback traffic is permitted.
+IPAddressDeny=any
+IPAddressAllow=127.0.0.0/8
+IPAddressAllow=::1/128
+
+[Install]
+WantedBy=multi-user.target

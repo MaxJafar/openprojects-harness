@@ -1,0 +1,37 @@
+# Defense in depth for npm packaging. package.json's `files` allowlist is the
+# authoritative boundary; these patterns prevent local state from entering a
+# tarball if that allowlist is changed accidentally.
+.github/
+.openprojects-appliance/
+data/
+node_modules/
+scripts/
+src/
+tests/
+training/__pycache__/
+training/artifacts/
+training/models/
+training/reviewed-export/
+training/tests/
+
+.env
+.env.*
+!.env.example
+*.db
+*.db3
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite*
+*.owner.lock
+*.sock
+*.token
+*.py[cod]
+*.safetensors
+*.gguf
+*.onnx
+*.mlmodel
+*.pem
+*.key
+*.p12
+*.pfx

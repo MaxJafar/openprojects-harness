@@ -1,0 +1,31 @@
+{
+  "schema": "openprojects.appliance-qualification.v1",
+  "requiredCapabilities": [
+    "text"
+  ],
+  "requirePins": true,
+  "pins": {
+    "route:local-granite-350m-analyst": {
+      "provider": "llama.cpp",
+      "model": "granite-4.0-350m-q8@9595dafb",
+      "artifacts": [
+        {
+          "path": "/opt/openprojects-llama/models/granite-4.0-350m-Q8_0.gguf",
+          "sha256": "9595dafb4ed15aa02512c8ea26188744192a6f09530eae0a2747bd3ada96cd36"
+        }
+      ],
+      "maxContextTokens": 3072,
+      "maxConcurrency": 1,
+      "runtime": {
+        "implementation": "llama.cpp",
+        "version": "v0.3.0-c1d0e7a004015f23bc0233470b747b596f29b264",
+        "artifacts": [
+          {
+            "path": "/opt/openprojects-llama/bin/llama-server",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "schema": "openprojects.appliance-qualification.v1",
+  "requiredCapabilities": [
+    "text"
+  ],
+  "requirePins": true,
+  "visionService": {
+    "provider": "mlx-vlm",
+    "model": "mlx-community/Qwen3-VL-2B-Instruct-4bit",
+    "baseUrl": "http://127.0.0.1:18081/v1",
+    "apiKeyEnv": "MLX_VLM_SERVER_API_KEY"
+  },
+  "pins": {
+    "route:local-mlx-lm": {
+      "provider": "mlx-lm",
+      "model": "mlx-community/Qwen3-1.7B-4bit",
+      "servedModelId": "/Library/OpenProjects/models/Qwen3-1.7B-4bit",
+      "artifacts": [
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-1.7B-4bit/config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-1.7B-4bit/tokenizer_config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-1.7B-4bit/tokenizer.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-1.7B-4bit/model.safetensors",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "maxContextTokens": 8192,
+      "maxConcurrency": 1
+    },
+    "vision": {
+      "provider": "mlx-vlm",
+      "model": "mlx-community/Qwen3-VL-2B-Instruct-4bit",
+      "servedModelId": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209",
+      "artifacts": [
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/.gitattributes",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/README.md",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/added_tokens.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/chat_template.jinja",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/chat_template.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/generation_config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/merges.txt",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/model.safetensors",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/model.safetensors.index.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/preprocessor_config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/special_tokens_map.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/tokenizer.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/tokenizer_config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/video_preprocessor_config.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "/Library/OpenProjects/models/Qwen3-VL-2B-Instruct-4bit-9c4f5209/vocab.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "maxContextTokens": 2048,
+      "maxConcurrency": 1,
+      "runtime": {
+        "implementation": "mlx-vlm",
+        "version": "0.6.16",
+        "artifacts": [
+          {
+            "path": "/Library/OpenProjects/vision-runtime/wheels/mlx_vlm-0.6.16-py3-none-any.whl",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "path": "/Library/OpenProjects/vision-runtime/requirements.lock",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      }
+    },
+    "embeddings": {
+      "provider": "ollama",
+      "model": "qwen3-embedding:0.6b",
+      "serviceDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+      "maxConcurrency": 1
+    },
+    "transcription": {
+      "provider": "whisper-cpp",
+      "model": "/Library/OpenProjects/models/ggml-small.bin",
+      "artifacts": [
+        {
+          "path": "/Library/OpenProjects/models/ggml-small.bin",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "maxConcurrency": 1
+    }
+  },
+  "transcriptionProbe": {
+    "inputPath": "/Library/OpenProjects/etc/qualification/known-phrase.wav",
+    "expectedText": "open projects qualification phrase"
+  }
+}

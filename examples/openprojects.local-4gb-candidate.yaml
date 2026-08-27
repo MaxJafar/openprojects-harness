@@ -1,0 +1,104 @@
+# Evaluation-only candidate configuration. It deliberately does not select
+# core-4g-v1: that profile certifies the model-free harness. This file instead
+# feeds the separate whole-process local-AI gate and enables exactly one narrow
+# project_analysis route. OPENPROJECTS_LLAMA_API_KEY must match the separately
+# provisioned owner-only llama-server key file.
+version: 1
+
+agent:
+  id: project-ops-local-4gb-eval
+  version: 0.6.0
+  name: OpenProjects Local 4 GB Evaluation Host
+  system: Evaluation host; the fixed project-analyst contract is selected by the evaluator.
+  skills: []
+  tools: []
+  budgets:
+    maxSteps: 3
+    maxToolCalls: 4
+    maxWallTimeMs: 45000
+    maxInputTokens: 2048
+    reservedOutputTokens: 512
+
+policy:
+  read: allow
+  draft: deny
+  memory_write: deny
+  internal_write: deny
+  external_write: deny
+  destructive: deny
+
+server:
+  host: 127.0.0.1
+  port: 4310
+
+storage:
+  database: ':memory:'
+
+privacy:
+  localOnly: true
+  allowedOrigins: []
+
+telegram:
+  enabled: false
+  apiBaseUrl: https://api.telegram.org
+
+model:
+  provider: llama.cpp
+  model: granite-4.0-350m-q8@9595dafb
+  baseUrl: http://127.0.0.1:18080/v1
+
+routing:
+  externalInference: deny
+  preferLocal: true
+  allowRemoteFallback: false
+  dailyBudgetUsd: 0
+  explorationRate: 0
+  routes:
+    - id: local-granite-350m-analyst
+      provider: llama.cpp
+      model: granite-4.0-350m-q8@9595dafb
+      generation: granite-9595dafb
+      baseUrl: http://127.0.0.1:18080/v1
+      apiKeyEnv: OPENPROJECTS_LLAMA_API_KEY
+      tasks: [project_analysis]
+      local: true
+      enabled: true
+      quality: 0.55
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 3072
+
+memory:
+  retrievalLimit: 0
+  maxContextCharacters: 0
+
+learning:
+  enabled: false
+  groupObservation: false
+  minimumSalience: 0.55
+  feedbackLearningRate: 0.2
+  retentionDays: 90
+
+embeddings:
+  provider: builtin
+  model: builtin-hash-v1
+  dimensions: 256
+  timeoutMs: 3000
+
+transcription:
+  provider: disabled
+  command: whisper-cli
+  ffmpegCommand: ffmpeg
+  timeoutMs: 180000
+  maxBytes: 25000000
+  maxDurationSeconds: 1200
+
+notifications:
+  enabled: false
+  intervalMs: 60000
+  lookaheadHours: 48
+
+subagents:
+  maxCallsPerRun: 0
+  maxParallel: 1
+  maxDepth: 0

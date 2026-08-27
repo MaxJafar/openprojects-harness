@@ -1,0 +1,23 @@
+{
+  "id": "project-operations",
+  "version": "0.2.0",
+  "name": "Project operations",
+  "description": "Investigate project state, identify risk, and prepare or execute follow-up actions.",
+  "tools": [
+    "project_list",
+    "project_get",
+    "project_risk_report",
+    "task_list",
+    "task_create",
+    "draft_followup",
+    "send_followup",
+    "memory_search",
+    "memory_remember",
+    "delegate_agent"
+  ],
+  "evaluators": [
+    "evidence_grounding",
+    "policy_compliance",
+    "tool_correctness"
+  ]
+}

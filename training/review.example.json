@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "openprojects.training-review.v1",
+  "decision": "approved",
+  "reviewedBy": "replace-with-accountable-reviewer",
+  "reviewedAt": "2026-08-25T00:00:00.000Z",
+  "purpose": "model_training",
+  "manifestSha256": "replace-with-the-64-character-manifest-sha256",
+  "attestations": {
+    "authorizationConfirmed": true,
+    "privacyReviewed": true,
+    "licensesReviewed": true,
+    "poisoningReviewed": true,
+    "holdoutPolicyAccepted": true
+  },
+  "datasets": [
+    {
+      "kind": "sft",
+      "sha256": "replace-with-the-64-character-sft-dataset-sha256",
+      "approvedRowIds": [
+        "replace-with-an-explicitly-reviewed-sft-row-id"
+      ]
+    }
+  ]
+}

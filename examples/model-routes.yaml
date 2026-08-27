@@ -1,0 +1,167 @@
+# Optional route catalog. Start from examples/openprojects.private.yaml and add
+# only routes that the customer explicitly approves. Hosted routes are disabled
+# and external inference is denied below; enabling one also requires changing
+# `externalInference` to `allow` and adding its exact HTTPS origin to
+# `privacy.allowedOrigins` when `privacy.localOnly` is true.
+# FreeToken is an inference server only. Its strict provider is loopback-only,
+# unauthenticated, and requires one fixed safe `--served-model-name` alias.
+# Run the current source lane only on qualified Linux/x86_64 + NVIDIA hardware.
+routing:
+  # Local routes rank first. Remote exploration and fallback never cross this
+  # boundary unless the operator explicitly changes these fields.
+  externalInference: deny
+  preferLocal: true
+  allowRemoteFallback: false
+  dailyBudgetUsd: 5
+  explorationRate: 0
+  routes:
+    - id: local-small
+      provider: ollama
+      model: qwen3.5:9b
+      generation: reviewed-local-qwen-2026-08
+      baseUrl: http://127.0.0.1:11434/v1
+      tasks: [supervisor, project_analysis, memory_curator, summarization, notification]
+      local: true
+      enabled: true
+      quality: 0.68
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 32768
+
+    # Apple Silicon pilot. OpenProjects omits the request model and requires
+    # mlx_lm.server to be launched with this reviewed model as default_model.
+    # Keep this disabled until `openprojects qualify --manifest ...` binds the
+    # exact canonical servedModelId and complete local snapshot inventory.
+    - id: apple-mlx-lm
+      provider: mlx-lm
+      model: mlx-community/Qwen3-1.7B-4bit
+      generation: reviewed-mlx-qwen-2026-08
+      baseUrl: http://127.0.0.1:8080/v1
+      tasks: [supervisor, project_analysis, memory_curator, summarization, notification]
+      local: true
+      enabled: false
+      quality: 0.55
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 8192
+
+    - id: local-moe-quality
+      provider: freetoken
+      # Launch the externally supervised server with:
+      # ft serve --model nvidia/Qwen3.6-35B-A3B-NVFP4 \
+      #   --served-model-name openprojects-qwen36-moe --host 127.0.0.1 \
+      #   --port 1919 --max-running-requests 1 --max-output-tokens 512 \
+      #   --max-seq-len-override 8192
+      # Keep the checkpoint repo/path outside request-time configuration.
+      model: openprojects-qwen36-moe
+      generation: freetoken-qwen36-2026-08
+      baseUrl: http://127.0.0.1:1919/v1
+      tasks: [project_analysis]
+      local: true
+      enabled: false
+      quality: 0.86
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 8192
+
+    # First portable 4 GiB project-analyst experiment. `llama.cpp` selects the
+    # strict authenticated loopback adapter; the request cannot change this
+    # --alias. The separate local-4GB manifest must bind the exact binary,
+    # GGUF, argv, PID/cgroup, and task-quality evidence before promotion.
+    - id: local-granite-350m-analyst
+      provider: llama.cpp
+      model: granite-4.0-350m-q8@9595dafb
+      generation: granite-9595dafb
+      baseUrl: http://127.0.0.1:18080/v1
+      apiKeyEnv: OPENPROJECTS_LLAMA_API_KEY
+      tasks: [project_analysis]
+      local: true
+      enabled: false
+      quality: 0.55
+      inputCostPerMillion: 0
+      outputCostPerMillion: 0
+      contextWindow: 3072
+
+    # OpenAI Chat Completions. Replace the model and both prices with values
+    # reviewed on the day this route is enabled; configured costs are estimates.
+    # Store the secret only in OPENAI_API_KEY, never in YAML.
+    - id: hosted-openai
+      provider: openai-compatible
+      model: your-reviewed-openai-model
+      generation: reviewed-openai-2026-08
+      baseUrl: https://api.openai.com/v1
+      apiKeyEnv: OPENAI_API_KEY
+      tasks: [supervisor, project_analysis]
+      local: false
+      enabled: false
+      quality: 0.80
+      inputCostPerMillion: 1
+      outputCostPerMillion: 1
+      contextWindow: 8192
+
+    # Google documents this OpenAI-compatibility URL. Use it only after testing
+    # the selected model's tool behavior against the OpenProjects eval corpus.
+    - id: hosted-gemini-compat
+      provider: openai-compatible
+      model: your-reviewed-gemini-model
+      generation: reviewed-gemini-2026-08
+      baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
+      apiKeyEnv: GEMINI_API_KEY
+      tasks: [supervisor, project_analysis]
+      local: false
+      enabled: false
+      quality: 0.80
+      inputCostPerMillion: 1
+      outputCostPerMillion: 1
+      contextWindow: 8192
+
+    # Anthropic describes its OpenAI compatibility layer primarily as an
+    # evaluation/migration aid and notes schema differences. Keep this disabled
+    # until strict OpenProjects tool-call conformance passes for the exact model.
+    - id: hosted-anthropic-compat
+      provider: openai-compatible
+      model: your-reviewed-claude-model
+      generation: reviewed-anthropic-2026-08
+      baseUrl: https://api.anthropic.com/v1
+      apiKeyEnv: ANTHROPIC_API_KEY
+      tasks: [supervisor, project_analysis]
+      local: false
+      enabled: false
+      quality: 0.80
+      inputCostPerMillion: 1
+      outputCostPerMillion: 1
+      contextWindow: 8192
+
+# Higher-memory local semantic retrieval. The 4 GiB profile instead uses the
+# in-process 256-dimensional `builtin-hash-v1` adapter and no resident model.
+embeddings:
+  provider: ollama
+  model: bge-m3:latest
+  baseUrl: http://127.0.0.1:11434
+  # Exact digest from the recorded M3 qualification; replace model and digest together.
+  serviceDigest: 7907646426070047a77226ac3e684fbbe8410524f7b4a74d02837e43f2146bab
+  dimensions: 1024
+  timeoutMs: 30000
+
+# Cloud embeddings are independent of chat routing. To use them, replace the
+# block above with the block below, add https://api.openai.com to the exact
+# privacy allowlist, and understand that queries plus every explicitly
+# backfilled memory leave the machine. Never put the credential in YAML.
+# embeddings:
+#   provider: openai-compatible
+#   model: your-reviewed-embedding-model
+#   baseUrl: https://api.openai.com/v1
+#   apiKeyEnv: OPENPROJECTS_EMBEDDING_API_KEY
+#   generation: reviewed-index-2026-08
+#   externalData: allow
+#   dimensions: 256
+#   timeoutMs: 30000
+
+transcription:
+  provider: whisper-cpp
+  command: /absolute/path/to/whisper-cli
+  modelPath: /absolute/path/to/ggml-small.bin
+  ffmpegCommand: /absolute/path/to/ffmpeg
+  timeoutMs: 180000
+  maxBytes: 25000000
+  maxDurationSeconds: 1200

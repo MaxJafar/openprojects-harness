@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "openprojects.training-lab.v1",
+  "exportBundle": "reviewed-export",
+  "artifactRoot": "artifacts",
+  "dataset": {
+    "kind": "sft",
+    "name": "project-ops-sft-v1",
+    "splitSeed": "openprojects-project-ops-pilot-v1",
+    "evaluationRatio": 0.333333,
+    "minimumApprovedRows": 150,
+    "maxPromptCharacters": 1200,
+    "maxResponseCharacters": 400
+  },
+  "mlx": {
+    "enabled": false,
+    "model": "Qwen/Qwen3-1.7B-MLX-4bit",
+    "modelSource": "Qwen/Qwen3-1.7B-MLX-4bit",
+    "modelRevision": "21457c6f51ed54a7c16e988c0844db973815c137",
+    "modelLock": "model-locks/qwen3-1.7b-mlx-4bit-21457c6f.json",
+    "adapterName": "qwen3-1.7b-project-ops-v1",
+    "fineTuneType": "lora",
+    "numLayers": 4,
+    "batchSize": 1,
+    "gradientAccumulationSteps": 4,
+    "iterations": 200,
+    "learningRate": 0.00001,
+    "maxSequenceLength": 1024,
+    "saveEvery": 25,
+    "stepsPerReport": 10,
+    "stepsPerEval": 50,
+    "gradientCheckpointing": true,
+    "evaluateAfterTraining": false,
+    "loraRank": 8,
+    "loraScale": 16.0,
+    "loraDropout": 0.0
+  }
+}

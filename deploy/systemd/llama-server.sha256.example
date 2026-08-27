@@ -1,0 +1,5 @@
+# Copy to /etc/openprojects/llama-server.sha256 only after replacing the first
+# digest with the SHA-256 of the exact reviewed platform binary. Keep this file,
+# the key file, and their parent directory non-writable by the service account.
+REPLACE_WITH_REVIEWED_LLAMA_SERVER_SHA256  /opt/openprojects-llama/bin/llama-server
+9595dafb4ed15aa02512c8ea26188744192a6f09530eae0a2747bd3ada96cd36  /opt/openprojects-llama/models/granite-4.0-350m-Q8_0.gguf

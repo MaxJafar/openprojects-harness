@@ -1,0 +1,44 @@
+# JavaScript and test output
+node_modules/
+dist/
+coverage/
+*.tgz
+npm-debug.log*
+
+# Local runtime state and credentials
+data/
+.openprojects-appliance/
+.env
+.env.*
+!.env.example
+*.db
+*.db3
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.owner.lock
+*.sock
+*.token
+openprojects.local.yaml
+openprojects.local.yaml.backup-*
+
+# Python training-lab state
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+training/artifacts/
+training/models/
+training/reviewed-export/
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

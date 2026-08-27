@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenProjects portable 4 GiB qualification envelope
+
+[Slice]
+# Parent envelope for the evaluator/OpenProjects process and the separately
+# capped llama-server child service. Install as openprojects-4gb.slice and run
+# the evaluator in a scope assigned to this slice. The evaluator still measures
+# the live cgroup hierarchy and fails closed if these controls are absent.
+MemoryHigh=3584M
+MemoryMax=4G
+MemorySwapMax=64M
+TasksMax=256

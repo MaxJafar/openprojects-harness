@@ -1,0 +1,102 @@
+# OpenProjects bounded core profile for a 4 GiB total-system target.
+# This deliberately configures no learned model, semantic embedding, voice,
+# vision, Telegram, subagent, notification, or integration process.
+version: 1
+
+agent:
+  id: project-ops-core-4g
+  version: 0.6.0
+  name: OpenProjects Core 4 GB Harness
+  skills: []
+  tools:
+    - project_list
+    - project_get
+    - project_risk_report
+    - memory_search
+  budgets:
+    maxSteps: 3
+    maxToolCalls: 4
+    maxWallTimeMs: 45000
+    maxInputTokens: 2048
+    reservedOutputTokens: 512
+
+policy:
+  read: allow
+  draft: allow
+  memory_write: deny
+  internal_write: ask
+  external_write: deny
+  destructive: deny
+
+resources:
+  profile: core-4g-v1
+  maxRetrievedContextCharacters: 1024
+
+server:
+  host: 127.0.0.1
+  port: 4310
+  socketPath: ./state-core-4g/control.sock
+  auth:
+    principals:
+      - id: local-admin
+        tokenFile: ./state-core-4g/control.token
+        capabilities:
+          - admin
+
+storage:
+  database: ./state-core-4g/openprojects.db
+
+privacy:
+  localOnly: true
+  allowedOrigins: []
+
+telegram:
+  enabled: false
+  apiBaseUrl: https://api.telegram.org
+
+model:
+  provider: mock
+  model: core-harness-fixture-v1
+
+routing:
+  externalInference: deny
+  preferLocal: true
+  allowRemoteFallback: false
+  dailyBudgetUsd: 0
+  explorationRate: 0
+  routes: []
+
+memory:
+  retrievalLimit: 2
+  maxContextCharacters: 512
+
+learning:
+  enabled: false
+  groupObservation: false
+  minimumSalience: 0.55
+  feedbackLearningRate: 0.2
+  retentionDays: 90
+
+embeddings:
+  provider: builtin
+  model: builtin-hash-v1
+  dimensions: 256
+  timeoutMs: 3000
+
+transcription:
+  provider: disabled
+  command: whisper-cli
+  ffmpegCommand: ffmpeg
+  timeoutMs: 180000
+  maxBytes: 25000000
+  maxDurationSeconds: 1200
+
+notifications:
+  enabled: false
+  intervalMs: 60000
+  lookaheadHours: 48
+
+subagents:
+  maxCallsPerRun: 0
+  maxParallel: 1
+  maxDepth: 0
