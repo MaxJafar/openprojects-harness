@@ -499,7 +499,7 @@ describe('installation wizard privacy boundaries', () => {
     });
     const cacheStep = plan.nextSteps.find((step) => step.startsWith('install -d -m 0700')) ?? '';
     const launch = plan.nextSteps.find((step) => step.includes('-m mlx_lm server')) ?? '';
-    expect(cacheStep).toContain('cache/huggingface/hub');
+    expect(cacheStep).toMatch(/cache[\\/]huggingface[\\/]hub/u);
     expect(launch).toContain('HF_HUB_OFFLINE=1');
     expect(launch).toContain('TRANSFORMERS_OFFLINE=1');
     expect(launch).toContain('HF_HUB_CACHE=');
@@ -666,7 +666,7 @@ describe('installation wizard privacy boundaries', () => {
     const steps = plan.nextSteps.join('\n');
     const launch = plan.nextSteps.find((step) => step.includes('--model'));
     expect(launch?.trim().split(/\s+/u)).toHaveLength(53);
-    expect(launch).toMatch(/^'\/.*\/bin\/llama-server' --model /u);
+    expect(launch).toMatch(/^'.*[\\/]bin[\\/]llama-server' --model /u);
     expect(steps).toContain(resolve(process.cwd(), 'bin/llama-server'));
     expect(steps).toContain(resolve(process.cwd(), 'models/granite-4.0-350m-Q8_0.gguf'));
     expect(steps).toContain('--offline');

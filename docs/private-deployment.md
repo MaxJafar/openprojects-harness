@@ -187,15 +187,15 @@ sudo -u openprojects /bin/sh -c \
 
 ## Unix control socket and manual recovery
 
-OpenProjects validates the absolute socket path through its existing parent, refuses symbolic links and every pre-existing leaf, creates the listener, applies mode `0600`, and records the created device/inode. When a protected socket already exists, startup and `doctor` make a short local connect-only liveness probe: an accepting listener is reported as active, while refusal/timeout is reported as a stale candidate. Neither result authorizes deletion. Graceful shutdown removes only the exact socket it created, and OpenProjects never deletes a replacement or automatically removes a stale candidate. Node documents that filesystem Unix sockets are normally removed on close but may remain after a crash ([Node Net documentation](https://nodejs.org/api/net.html)).
+OpenProjects validates the absolute socket path through its existing parent, refuses symbolic links and every pre-existing leaf, creates the listener, and applies mode `0600`. It then creates one random `.openprojects-socket-lease-<24-hex>` hard-link anchor in the same owner-only directory. That private anchor pins the created inode until verified cleanup, preventing an immediately reused device/inode pair from making a replacement socket look like the original. When a protected socket already exists, startup and `doctor` make a short local connect-only liveness probe: an accepting listener is reported as active, while refusal/timeout is reported as a stale candidate. Neither result authorizes deletion. Graceful shutdown removes only the exact socket and anchor it created, and OpenProjects never deletes a replacement or automatically removes a stale candidate. Node documents that filesystem Unix sockets are normally removed on close but may remain after a crash ([Node Net documentation](https://nodejs.org/api/net.html)).
 
 After an unclean exit, startup intentionally fails until the socket is recovered. The bounded liveness probe is supporting evidence only: a refused connection does not prove that no process owns or may reuse the path. Remove it only after proving there is no surviving listener:
 
 1. Stop the unit and its restart loop.
 2. Confirm the unit is inactive and no OpenProjects process under the service account survives.
-3. Inspect `/var/lib/openprojects` without following links. The parent must be the expected service-owned directory at mode `0700`; `control.sock` must be a Unix socket owned by `openprojects:openprojects` at mode `0600`. Preserve and escalate any unexpected type, owner, or mode.
-4. Treat the absence of a process as necessary but not sufficient; verify the exact path and remove only that inspected socket.
-5. Start the unit and confirm that it recreates the mode-`0600` socket and passes the Unix-socket health check.
+3. Inspect `/var/lib/openprojects` without following links. The parent must be the expected service-owned directory at mode `0700`; `control.sock` must be a Unix socket owned by `openprojects:openprojects` at mode `0600`. Enumerate any `.openprojects-socket-lease-*` entries without following them. A legitimate stale anchor is also a mode-`0600` Unix socket owned by the service account and normally has the same device/inode as the stale `control.sock`. Preserve and escalate every unexpected name, type, owner, mode, or identity.
+4. Treat the absence of a process as necessary but not sufficient. Record the exact inspected socket and anchor paths; remove only those explicit paths after their identities are proven stale. Never use a wildcard deletion.
+5. Start the unit and confirm that it recreates the mode-`0600` socket, creates exactly one private lease anchor while running, and passes the Unix-socket health check. A graceful stop must remove both entries.
 
 ```bash
 sudo systemctl stop openprojects
@@ -204,12 +204,22 @@ sudo pgrep -a -u openprojects -f '/opt/openprojects/dist/src/cli.js'
 sudo stat --format='type=%F mode=%a owner=%U:%G inode=%d:%i' -- \
   /var/lib/openprojects /var/lib/openprojects/control.sock
 sudo test -S /var/lib/openprojects/control.sock
+sudo find /var/lib/openprojects -maxdepth 1 -type s \
+  -name '.openprojects-socket-lease-*' -printf '%p\n'
 
-# Only after the checks above prove that this is the expected stale socket:
-sudo -u openprojects rm -- /var/lib/openprojects/control.sock
+# Set this to one exact path returned above; do not use a glob.
+OPENPROJECTS_STALE_ANCHOR=/var/lib/openprojects/.openprojects-socket-lease-REPLACE_WITH_VERIFIED_24_HEX_SUFFIX
+sudo stat --format='type=%F mode=%a owner=%U:%G inode=%d:%i' -- \
+  /var/lib/openprojects/control.sock "$OPENPROJECTS_STALE_ANCHOR"
+sudo test -S "$OPENPROJECTS_STALE_ANCHOR"
+
+# Only after the checks above prove that both exact paths are stale:
+sudo -u openprojects rm -- /var/lib/openprojects/control.sock "$OPENPROJECTS_STALE_ANCHOR"
 sudo systemctl start openprojects
 sudo stat --format='type=%F mode=%a owner=%U:%G inode=%d:%i' -- \
   /var/lib/openprojects/control.sock
+sudo find /var/lib/openprojects -maxdepth 1 -type s \
+  -name '.openprojects-socket-lease-*' -printf '%p\n'
 sudo systemctl status --no-pager openprojects
 ```
 

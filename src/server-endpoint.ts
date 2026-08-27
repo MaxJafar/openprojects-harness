@@ -1,10 +1,12 @@
 import {
   chmodSync,
+  linkSync,
   lstatSync,
   realpathSync,
   unlinkSync,
   type Stats,
 } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import { createConnection } from 'node:net';
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path';
@@ -13,6 +15,8 @@ const MAX_UNIX_SOCKET_PATH_BYTES = 100;
 const PROTECTED_DIRECTORY_MODE = 0o700;
 const PROTECTED_SOCKET_MODE = 0o600;
 const DEFAULT_UNIX_SOCKET_PROBE_TIMEOUT_MS = 750;
+const SOCKET_LEASE_ANCHOR_PREFIX = '.openprojects-socket-lease-';
+const SOCKET_LEASE_ANCHOR_ATTEMPTS = 8;
 
 export class UnixSocketEndpointError extends Error {
   constructor(message: string) {
@@ -164,7 +168,7 @@ function canonicalUnixSocketPath(socketPath: string): string {
   return resolved;
 }
 
-/** Listen, restrict the socket to its owner, and return an inode-guarded cleanup lease. */
+/** Listen, restrict the socket to its owner, and return an inode-pinned cleanup lease. */
 export async function listenOnUnixSocket(server: Server, socketPath: string): Promise<UnixSocketLease> {
   const resolved = await assertUnixSocketPathAvailable(socketPath);
   await new Promise<void>((resolve, reject) => {
@@ -188,6 +192,7 @@ export async function listenOnUnixSocket(server: Server, socketPath: string): Pr
   });
 
   let identity: Pick<Stats, 'dev' | 'ino'> | undefined;
+  let anchorPath: string | undefined;
   try {
     const initial = lstatSync(resolved);
     if (!initial.isSocket()) throw new UnixSocketEndpointError('The control endpoint leaf is not a Unix socket');
@@ -199,9 +204,11 @@ export async function listenOnUnixSocket(server: Server, socketPath: string): Pr
       throw new UnixSocketEndpointError('The Unix control socket permissions could not be secured');
     }
     identity = { dev: secured.dev, ino: secured.ino };
+    anchorPath = createSocketLeaseAnchor(resolved, identity);
   } catch (error) {
     await closeServerAfterFailedListen(server);
     if (identity) safeUnlinkKnownSocket(resolved, identity);
+    if (identity && anchorPath) safeUnlinkKnownSocket(anchorPath, identity);
     if (error instanceof UnixSocketEndpointError) throw error;
     throw new UnixSocketEndpointError('The Unix control socket could not be secured');
   }
@@ -211,17 +218,49 @@ export async function listenOnUnixSocket(server: Server, socketPath: string): Pr
     socketPath: resolved,
     cleanup(): void {
       if (cleaned) return;
+      if (!identity || !anchorPath) {
+        throw new UnixSocketEndpointError('The Unix control socket lease identity is unavailable');
+      }
+
+      let anchor: Stats;
+      try {
+        anchor = lstatSync(anchorPath);
+      } catch (error) {
+        if (systemErrorCode(error) === 'ENOENT') {
+          try {
+            lstatSync(resolved);
+          } catch (pathError) {
+            if (systemErrorCode(pathError) === 'ENOENT') {
+              cleaned = true;
+              return;
+            }
+          }
+          throw new UnixSocketEndpointError(
+            'The Unix control socket lease anchor disappeared; refusing to unlink the endpoint',
+          );
+        }
+        throw new UnixSocketEndpointError('The Unix control socket lease anchor could not be inspected');
+      }
+      if (!sameSocketIdentity(anchor, identity)) {
+        throw new UnixSocketEndpointError(
+          'The Unix control socket lease anchor identity changed; refusing to unlink the endpoint',
+        );
+      }
+
       let current: Stats;
       try {
         current = lstatSync(resolved);
       } catch (error) {
         if (systemErrorCode(error) === 'ENOENT') {
+          removeSocketLeaseAnchor(anchorPath, identity);
           cleaned = true;
           return;
         }
         throw new UnixSocketEndpointError('The Unix control socket could not be inspected during cleanup');
       }
-      if (!identity || !current.isSocket() || current.dev !== identity.dev || current.ino !== identity.ino) {
+      if (!sameSocketIdentity(current, identity)) {
+        removeSocketLeaseAnchor(anchorPath, identity);
+        cleaned = true;
         throw new UnixSocketEndpointError('The Unix control socket identity changed; refusing to unlink it');
       }
       try {
@@ -229,6 +268,7 @@ export async function listenOnUnixSocket(server: Server, socketPath: string): Pr
       } catch {
         throw new UnixSocketEndpointError('The Unix control socket could not be removed');
       }
+      removeSocketLeaseAnchor(anchorPath, identity);
       cleaned = true;
     },
   };
@@ -277,10 +317,70 @@ async function closeServerAfterFailedListen(server: Server): Promise<void> {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 }
 
+function createSocketLeaseAnchor(
+  socketPath: string,
+  identity: Pick<Stats, 'dev' | 'ino'>,
+): string {
+  // Keep the original inode allocated even after Node removes the bound path on
+  // close. This prevents an ABA replacement from reusing the same dev/ino pair;
+  // timestamp fields alone are not a portable filesystem generation counter.
+  for (let attempt = 0; attempt < SOCKET_LEASE_ANCHOR_ATTEMPTS; attempt += 1) {
+    const candidate = join(
+      dirname(socketPath),
+      `${SOCKET_LEASE_ANCHOR_PREFIX}${randomBytes(12).toString('hex')}`,
+    );
+    try {
+      linkSync(socketPath, candidate);
+    } catch (error) {
+      if (systemErrorCode(error) === 'EEXIST') continue;
+      throw new UnixSocketEndpointError('The Unix control socket identity could not be pinned');
+    }
+
+    try {
+      const current = lstatSync(socketPath);
+      const anchor = lstatSync(candidate);
+      if (!sameSocketIdentity(current, identity) || !sameSocketIdentity(anchor, identity)) {
+        safeUnlinkKnownSocket(candidate, identity);
+        throw new UnixSocketEndpointError('The Unix control socket identity changed while it was being pinned');
+      }
+      return candidate;
+    } catch (error) {
+      safeUnlinkKnownSocket(candidate, identity);
+      if (error instanceof UnixSocketEndpointError) throw error;
+      throw new UnixSocketEndpointError('The Unix control socket identity could not be verified after pinning');
+    }
+  }
+  throw new UnixSocketEndpointError('A unique Unix control socket lease anchor could not be allocated');
+}
+
+function removeSocketLeaseAnchor(
+  anchorPath: string,
+  identity: Pick<Stats, 'dev' | 'ino'>,
+): void {
+  let anchor: Stats;
+  try {
+    anchor = lstatSync(anchorPath);
+  } catch {
+    throw new UnixSocketEndpointError('The Unix control socket lease anchor could not be removed');
+  }
+  if (!sameSocketIdentity(anchor, identity)) {
+    throw new UnixSocketEndpointError('The Unix control socket lease anchor identity changed');
+  }
+  try {
+    unlinkSync(anchorPath);
+  } catch {
+    throw new UnixSocketEndpointError('The Unix control socket lease anchor could not be removed');
+  }
+}
+
+function sameSocketIdentity(stats: Stats, identity: Pick<Stats, 'dev' | 'ino'>): boolean {
+  return stats.isSocket() && stats.dev === identity.dev && stats.ino === identity.ino;
+}
+
 function safeUnlinkKnownSocket(socketPath: string, identity: Pick<Stats, 'dev' | 'ino'>): void {
   try {
     const current = lstatSync(socketPath);
-    if (current.isSocket() && current.dev === identity.dev && current.ino === identity.ino) {
+    if (sameSocketIdentity(current, identity)) {
       unlinkSync(socketPath);
     }
   } catch {

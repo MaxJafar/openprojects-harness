@@ -3,6 +3,7 @@ import {
   existsSync,
   lstatSync,
   mkdtempSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -14,7 +15,7 @@ import {
   type ServerResponse,
 } from 'node:http';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -201,6 +202,7 @@ describe.skipIf(!POSIX)('Unix control server endpoint', () => {
     openEndpoints.delete(endpoint);
     await closeUnixSocketServer(endpoint.server, endpoint.lease);
     expect(existsSync(endpoint.lease.socketPath)).toBe(false);
+    expect(readdirSync(dirname(endpoint.lease.socketPath))).toEqual([]);
     expect(() => endpoint.lease.cleanup()).not.toThrow();
   });
 
@@ -209,6 +211,7 @@ describe.skipIf(!POSIX)('Unix control server endpoint', () => {
     const path = join(parent, 'control.sock');
     const firstServer = createServer();
     const firstLease = await listenOnUnixSocket(firstServer, path);
+    const firstIdentity = lstatSync(path);
     await new Promise<void>((resolve) => firstServer.close(() => resolve()));
 
     const replacementServer = createServer();
@@ -216,8 +219,18 @@ describe.skipIf(!POSIX)('Unix control server endpoint', () => {
     const replacement = { server: replacementServer, lease: replacementLease };
     openEndpoints.add(replacement);
 
+    const replacementIdentity = lstatSync(path);
+    expect([replacementIdentity.dev, replacementIdentity.ino]).not.toEqual([
+      firstIdentity.dev,
+      firstIdentity.ino,
+    ]);
     expect(() => firstLease.cleanup()).toThrow('identity changed');
     expect(lstatSync(path).isSocket()).toBe(true);
+    expect(readdirSync(parent).some((entry) => {
+      const stats = lstatSync(join(parent, entry));
+      return stats.dev === firstIdentity.dev && stats.ino === firstIdentity.ino;
+    })).toBe(false);
+    expect(() => firstLease.cleanup()).not.toThrow();
   });
 
   it('sanitizes listen failures into endpoint-specific errors', async () => {

@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import { Ajv } from 'ajv';
 import { describe, expect, it } from 'vitest';
 
@@ -12,7 +14,7 @@ import {
 } from '../src/adapters/vision.js';
 
 const PNG_32_BLUE = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAJklEQVR42u3NsQkAAAjAsP7/tF7hIASyp5pjAoFAIBAIBAKB4EmwOkv8Lom8x/sAAAAASUVORK5CYII=';
-const MODEL = '/srv/openprojects/models/pinned-vlm';
+const MODEL = resolve('models', 'pinned-vlm');
 
 describe('standalone local vision configuration', () => {
   it('is disabled by default and resolves one strict enabled candidate', () => {

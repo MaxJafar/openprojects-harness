@@ -66,8 +66,9 @@ describe('private appliance doctor', () => {
 
   it('probes a local OpenAI-compatible model, Ollama embeddings, durable storage, and Whisper prerequisites', async () => {
     const root = await temporaryDirectory();
-    const whisper = join(root, 'whisper-cli');
-    const ffmpeg = join(root, 'ffmpeg');
+    const executableSuffix = process.platform === 'win32' ? '.exe' : '';
+    const whisper = join(root, `whisper-cli${executableSuffix}`);
+    const ffmpeg = join(root, `ffmpeg${executableSuffix}`);
     const whisperModel = join(root, 'ggml-small.bin');
     const controlToken = join(root, 'control.token');
     await Promise.all([
@@ -105,10 +106,12 @@ describe('private appliance doctor', () => {
       databasePath: join(root, 'openprojects.db'),
     });
 
-    expect(report.overall).toBe('ready');
-    for (const id of ['model', 'embeddings', 'storage', 'transcription']) {
+    expect(report.overall).toBe(process.platform === 'win32' ? 'degraded' : 'ready');
+    for (const id of ['model', 'embeddings', 'transcription']) {
       expect(status(report, id)).toBe('pass');
     }
+    expect(status(report, 'storage')).toBe(process.platform === 'win32' ? 'warn' : 'pass');
+    expect(status(report, 'control-auth')).toBe(process.platform === 'win32' ? 'warn' : 'pass');
     expect(report.checks.find((item) => item.id === 'embeddings')?.detail).toContain('3 finite dimensions');
   });
 
