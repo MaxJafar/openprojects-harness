@@ -94,6 +94,70 @@ Before opening a durable SQLite database, every application process exclusively 
 
 An unclean exit can leave a stale lock. OpenProjects deliberately does not trust PID metadata enough to break it automatically. Never delete a lock merely because startup calls it stale or because the recorded PID is absent: first stop the service/restart loop, verify through the service manager and host process inspection that no OpenProjects process is using the database, inspect the exact lock path without following links, and remove only that one expected regular file. The complete operator procedure is in [Private corporate deployment](./docs/private-deployment.md#runtime-owner-lock-and-manual-recovery).
 
+## Read-only provider sidecars
+
+The Linear/Jira Oracle sidecar is a separate one-shot process. Provider tokens
+are read only from the configured environment variable and must be scoped and
+injected by the host secret manager. They must never appear in YAML, argv,
+logs, reports, Oracle records, pending pages, or model context. The Oracle token
+uses the protected control-token loader and should identify a principal with
+only `ingest` for one exact workspace.
+
+Provider requests are restricted in code to exact HTTPS origins and fixed
+identity/read-query operations. Redirects, cookies, ambient credentials,
+arbitrary URLs, user-authored GraphQL/JQL, comments, descriptions,
+attachments, worklogs, and provider mutations are absent from v1. Linear/Jira
+responses are hostile input: every decoded response string is first scrubbed
+of the exact configured credential value, account/team/cloud identity and
+structural bounds are checked before records are normalized, creation must not
+postdate update, and every update timestamp must remain inside the exact
+connector window. The same exact-secret guard is applied again to every new or
+replayed Oracle request body before it can be submitted. Jira
+uses timezone-independent epoch-millisecond JQL bounds and rejects any grant
+other than the exact classic `read:jira-work` scope. The resulting text remains
+untrusted Oracle evidence with no instruction authority.
+
+Provider request evidence counts actual wire attempts, including retries; it
+contains only the fixed method, origin, redacted path, and operation class.
+After Oracle commit, normalized provider text can still cross the configured
+embedding boundary. Sync receipts and sidecar reports expose `local`,
+`external`, or `unreported` boundary evidence plus bounded model/count/error
+evidence. An ambiguous acknowledgement records embedding
+`invocationOutcome: unknown`; empty receipt-observed counts must not be read as
+proof that no embedding disclosure occurred. `local` is declared placement,
+not proof that a loopback model server cannot proxy or egress. Do not promote a
+report with an unexpected external, unreported, or unknown outcome.
+
+`pending-page.json` can contain provider-derived business metadata. The POSIX
+state directory is forced owner-only and the pending file is synchronized
+before the local Oracle POST. The implementation retains and rechecks directory
+and pending-file identities, but the canonical state path and every ancestor
+must still be protected from untrusted rename/write access; Node does not expose
+portable dirfd-relative publication and unlink primitives. Windows mode bits are not an ACL attestation;
+restrict the state directory and both credentials to the Task Scheduler/service
+identity on NTFS before use. A transport failure after POST leaves the exact
+page in place. Do not edit or delete it to “fix” a conflict. After verifying
+that no sidecar process exists, remove only a stale
+`sidecar-state.owner.lock`; the next run validates and replays the committed
+body or fails closed on checkpoint drift.
+
+On POSIX, the Oracle socket parent is resolved and required to be an owner-only
+`0700` directory; the endpoint must be an owner-owned Unix socket with mode
+`0600`. The client repeats that validation immediately before each request and
+uses the canonical parent path. This prevents another local account from
+substituting a listener in the reviewed directory, but every ancestor and the
+same OS account remain part of the deployment trust boundary. Plaintext
+loopback TCP is rejected because the Bearer token authenticates only the client;
+native Windows therefore requires CA-authenticated loopback HTTPS or another
+separately reviewed protected IPC transport.
+
+Static API-key or pre-issued Bearer consumption does not implement OAuth.
+Consent/PKCE state, refresh, rotation, revocation, tenant switching, scope
+downgrade, deletion/archive reconciliation, physical Windows deployment, Linux
+CI and target Linux deployment, and the complete 4 GB Oracle workload require
+separate evidence. See
+[Read-only provider sidecars](./docs/provider-sidecars.md).
+
 ## Telegram consent and privacy
 
 Telegram webhook requests use one fixed `POST /webhooks/telegram` route and authenticate only with `X-Telegram-Bot-Api-Secret-Token`; the secret is not placed in the URL. Update IDs are deduplicated. The stored inbound webhook payload contains sanitized metadata rather than raw message text. Metadata can still be identifying and must be protected. Because the current process has no separate webhook listener, a Telegram-enabled hybrid profile uses loopback TCP behind a reviewed TLS reverse proxy. That proxy must publish exactly the fixed POST route and must not forward `/api/*`, `/health`, dashboard/static paths, or arbitrary methods. Telegram with `server.socketPath` is rejected rather than silently making the private socket network-reachable.
@@ -127,7 +191,7 @@ Inferred group memories start `proposed` and are excluded from retrieval. Telegr
 - The dedicated `llama.cpp` route accepts only exact loopback HTTP `/v1`, a visible-ASCII bearer credential, and a fixed safe model alias. It sends one structured request at a time, disables parallel tool calls, and rejects response-model drift. The packaged worker is CPU-only and disables its UI, built-in agent/tool/MCP surfaces, model downloads, multimodal projection, slot inspection, continuous batching, and request-selectable model routing. OpenProjects remains the only tool and approval authority. The standalone 4 GiB gate holds and rechecks exact config/manifest snapshots plus host and target-root artifact descriptors, cross-binds qualification and deployment pins, and binds the only enabled route, runtime/model hashes, PID instance, namespaces, complete argv, read-only model mapping, sole listener, negative auth, sealed environment, resource envelope, soak, and compact analyst result. macOS app-budget evidence is explicitly non-certifying; Linux promotion also requires a host no larger than 4.5 GiB with at least 256 MiB continuously available, a verified cgroup-v2 mount, and stable finite memory/swap limits, inode, kernel peaks, and sampling cadence under a shared ancestor no larger than 4 GiB.
 - The experimental `freetoken` route accepts only exact loopback HTTP `/v1`, forbids unsupported API-key configuration, and sends only a fixed safe `--served-model-name` alias. It disables parallel tool calls, rejects malformed or unoffered tool calls and response-model drift, and requires a singleton model inventory during qualification. FreeToken remains an externally supervised NVIDIA runtime with no documented model-server authentication; never expose its port or treat its process/model artifacts as part of the 4 GiB core.
 - The optional MLX-LM route is a supervised loopback dependency, not an embedded sandbox. Its upstream HTTP server is unauthenticated development software: use it only on a dedicated/trusted Apple host, pin the runtime and complete model snapshot, deny egress independently, and run `openprojects qualify` against a reviewed manifest before accepting a lane. Qualification is bounded evidence for one artifact/runtime/configuration; it is not a security proof, quality guarantee, or permission to expose the MLX port to other users.
-- The default feature-hash embedding stays in process. Optional Ollama embeddings disclose memory/query text to that configured endpoint; vectors themselves can reveal semantic information.
+- The default feature-hash embedding stays in process. Optional Ollama embeddings disclose memory/query text to that configured endpoint; vectors themselves can reveal semantic information. Concrete embedding adapters declare `local` or `external`; custom adapters without a declaration remain `unreported` in Oracle/sidecar evidence. `local` includes loopback placement and does not prove the sibling service cannot proxy data elsewhere.
 - A routed subagent has no tools, but its task text is still disclosed to the selected inference endpoint and a crash can repeat provider cost.
 - Telegram is an external processor even when inference is local. Telegram messages/files reach Telegram infrastructure, and admin checks, audio download, responses, and notifications require network egress. A Telegram-connected deployment may claim local model inference, not that all data remains on the corporate machine.
 

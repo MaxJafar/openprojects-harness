@@ -9,15 +9,19 @@ The unreleased Corporate Oracle foundation adds a complementary **ingestion
 plane**. It is not a model tool and it does not make provider payloads
 authoritative instructions. A least-privilege connector sidecar normalizes
 bounded source pages into a versioned local evidence ledger; the agent can only
-search that ledger through read-only, cited Oracle tools. Provider-specific
-sidecars and a 4 GiB Oracle deployment remain unqualified.
+search that ledger through read-only, cited Oracle tools. One-shot Linear/Jira
+sidecars are now implemented, but no external tenant or 4 GiB Oracle deployment
+has passed the live promotion gate.
 
 The design goal is intentionally narrower than a generic connector framework:
 the model may choose among reviewed tools and fill reviewed input fields, but
 it cannot choose an endpoint, executable, credential, HTTP method, header,
 GraphQL/JQL document, remote tool name, effect, or retry policy.
 
-Ready-to-copy templates are in [`examples/integrations/`](../examples/integrations/README.md).
+Ready-to-copy tool templates are in
+[`examples/integrations/`](../examples/integrations/README.md); the separately
+bounded Oracle polling templates are in
+[`examples/sidecars/`](../examples/sidecars/README.md).
 
 Transport code is loaded on demand. A JSON API-only process does not import the
 MCP client or SDK graph, and an MCP-only process does not import the JSON API
@@ -42,9 +46,10 @@ to update that ticket, send an email, post a message, or change an ERP record.
 ### Provider sidecar boundary
 
 OpenProjects intentionally does not absorb every provider SDK and identity
-flow into its lightweight process. A separately deployed sidecar owns:
+flow into its resident service. A separately invoked sidecar owns:
 
-- OAuth or service-account authorization, token refresh, and provider scopes;
+- static credential consumption and provider-scope enforcement; a production
+  identity broker may separately own OAuth authorization and refresh;
 - webhook verification or bounded polling, pagination, backoff, and rate limits;
 - mapping provider-specific payloads into the normalized record contract; and
 - its own secret storage, network policy, release pin, logging, and operational
@@ -74,9 +79,11 @@ credential can call only sync and its own checkpoint endpoint. It cannot search
 evidence, start a run, inspect memory, approve an action, or erase data.
 `admin` is required for source erasure.
 
-No provider sidecar is bundled or live-qualified yet. OAuth and pagination are
-therefore architectural sidecar responsibilities, not capabilities of the
-current MCP/JSON clients or the Oracle API itself.
+The bundled Linear/Jira v1 sidecars implement fixed read/query operations,
+account verification, finite incremental windows, and exact pending-page
+replay. They consume a restricted API key or pre-issued token; they do not run
+or qualify OAuth consent, refresh, rotation, or revocation. No external tenant
+has passed the live gate. See the [sidecar runbook](./provider-sidecars.md).
 
 ### Normalized page contract
 
@@ -306,11 +313,12 @@ deadlines, renamed owners, CRM-versus-ticket disagreement, missing streams, and
 historical “what source state was effective by this provider update time?”
 questions.
 
-The current repository implements the generic foundation only. It does not yet
-claim a live Linear, Jira, GitHub, Salesforce, HubSpot, SAP, Odoo, Gmail,
-Microsoft 365, Slack, Teams, or other provider connector, and the existing 4
-GiB qualification did not exercise Oracle ingestion, retained history, or a
-realistic multi-source index. The
+The repository now implements the generic foundation plus bounded Linear/Jira
+polling transports, but it does not claim either external provider as live
+qualified. Slack, email, CRM, ERP, GitHub, Salesforce, HubSpot, SAP, Odoo,
+Gmail, Microsoft 365, Teams, and other Oracle sidecars remain unimplemented,
+and the existing 4 GiB qualification did not exercise sidecars, Oracle
+ingestion, retained history, or a realistic multi-source index. The
 [synthetic NDJSON fixture](../examples/integrations/oracle-sync.requests.ndjson)
 covers five normalized domains for development handoff testing; it is not a
 connector or live-provider qualification.
@@ -566,8 +574,8 @@ write authority, and create an explicit local manifest.
   deployments need host/network controls.
 - JSON object projection is shallow by design; nested validation belongs in the
   strict local output schema. There is no declarative response transformation,
-  pagination loop, or field-language interpreter. Oracle sidecars may implement
-  provider pagination outside the harness, but no such sidecar is bundled or
-  qualified yet.
+  pagination loop, or field-language interpreter. The separate bundled
+  Linear/Jira Oracle sidecars implement provider-owned pagination outside that
+  generic integration path, but neither is live-qualified yet.
 - External systems do not share a transaction with SQLite. Non-idempotent
   failures remain `unknown_outcome` until an operator verifies external state.

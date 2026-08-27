@@ -750,6 +750,75 @@ integrations
     if (report.overall === 'not_ready') process.exitCode = 1;
   });
 
+const sidecars = program
+  .command('sidecars')
+  .description('Validate, probe, or run bounded read-only Corporate Oracle provider sidecars');
+
+sidecars
+  .command('check')
+  .description('Validate and content-address one sidecar config without reading credentials or using the network')
+  .requiredOption('-c, --config <path>', 'sidecar YAML/JSON config path')
+  .option('--json', 'print the versioned machine-readable report')
+  .action(async (options: { config: string; json?: boolean }) => {
+    const [{ loadSidecarConfig }, { renderSidecarReport, sidecarCheckReport }] = await Promise.all([
+      import('./sidecars/config.js'),
+      import('./sidecars/runner.js'),
+    ]);
+    const report = sidecarCheckReport(loadSidecarConfig(options.config));
+    stdout.write(options.json ? `${JSON.stringify(report, null, 2)}\n` : renderSidecarReport(report));
+    if (report.overall === 'not_ready') process.exitCode = 1;
+  });
+
+sidecars
+  .command('probe')
+  .description('Perform exact live provider identity/read probes without connecting to or writing the Oracle')
+  .requiredOption('-c, --config <path>', 'sidecar YAML/JSON config path')
+  .option('--json', 'print the versioned machine-readable report')
+  .action(async (options: { config: string; json?: boolean }) => {
+    const [{ loadSidecarConfig }, {
+      renderSidecarReport,
+      runSidecarProbe,
+      sidecarFailureReport,
+    }] = await Promise.all([
+      import('./sidecars/config.js'),
+      import('./sidecars/runner.js'),
+    ]);
+    const loaded = loadSidecarConfig(options.config);
+    let report;
+    try {
+      report = await runSidecarProbe(loaded);
+    } catch (error) {
+      report = sidecarFailureReport(loaded, 'probe', error);
+    }
+    stdout.write(options.json ? `${JSON.stringify(report, null, 2)}\n` : renderSidecarReport(report));
+    if (report.overall === 'not_ready') process.exitCode = 1;
+  });
+
+sidecars
+  .command('sync')
+  .description('Fetch and durably commit a finite provider window through an ingest-only Oracle principal')
+  .requiredOption('-c, --config <path>', 'sidecar YAML/JSON config path')
+  .option('--json', 'print the versioned machine-readable report')
+  .action(async (options: { config: string; json?: boolean }) => {
+    const [{ loadSidecarConfig }, {
+      renderSidecarReport,
+      runSidecarSync,
+      sidecarFailureReport,
+    }] = await Promise.all([
+      import('./sidecars/config.js'),
+      import('./sidecars/runner.js'),
+    ]);
+    const loaded = loadSidecarConfig(options.config);
+    let report;
+    try {
+      report = await runSidecarSync(loaded);
+    } catch (error) {
+      report = sidecarFailureReport(loaded, 'sync', error);
+    }
+    stdout.write(options.json ? `${JSON.stringify(report, null, 2)}\n` : renderSidecarReport(report));
+    if (report.overall === 'not_ready') process.exitCode = 1;
+  });
+
 const learning = program.command('learning').description('Inspect and export bounded learning state');
 
 learning

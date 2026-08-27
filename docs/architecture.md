@@ -1,8 +1,9 @@
 # OpenProjects Harness architecture v0.6 + unreleased Corporate Oracle foundation
 
 Status: implemented v0.6 contract plus an unreleased temporal Corporate Oracle
-foundation; provider sidecars, a representative Oracle product evaluation, and
-the 4 GiB Oracle workload remain unqualified. Vision readiness remains
+foundation plus isolated one-shot Linear/Jira polling sidecars; external-tenant
+sidecar operation, a representative Oracle product evaluation, and the 4 GiB
+Oracle workload remain unqualified. Vision readiness remains
 separated from product ingestion. Last updated 2026-08-27.
 
 OpenProjects is a single-process, lightweight private agent control plane for project operations. Its bounded core targets a 4 GiB total-system host without requiring a resident learned model; model inference, semantic embeddings, transcription, vision, Telegram, and integrations are separately enabled and qualified lanes. Larger private deployments can keep those processes on customer-controlled hardware, while hosted routes remain an explicit compatibility option rather than a dependency. The host combines a durable supervisor loop, schema-validated tools and approvals, task/cost-aware model routing, bounded specialist lanes, reviewed persistent memory, a temporal cross-system evidence ledger, deterministic notifications, and controlled learning-data export.
@@ -23,8 +24,8 @@ The live product remains a harness around inference models. It is **not** an onl
   control capability. Schema migration 11 adds an accepted-page replay ledger,
   Unicode FTS5 candidate indexes, replay-time embedding repair, cursor-chain
   compare-and-swap fencing, and the session-wide post-Oracle action guard.
-  Neither migration bundles or qualifies provider
-  sidecars.
+  The schema remains provider-neutral; the one-shot Linear/Jira CLI sidecars
+  use it but do not inherit a live-provider qualification from the migration.
 - The active lightweight stage adds the optional `core-4g-v1` profile, aggregate retrieved-context limits, lazy integration loading, bounded model-response materialization, and a disposable harness footprint gate. This profile is a capability reduction; it does not claim that a local model runtime fits in 4 GiB.
 - SQLite now has a numbered transactional migration history and a matching
   `PRAGMA user_version` gate. Event envelopes still have no per-event schema
@@ -37,7 +38,7 @@ The live product remains a harness around inference models. It is **not** an onl
 | --- | --- | --- | --- |
 | Models | Deterministic mock route | Local or hosted OpenAI-compatible routes, strict loopback MLX-LM text/tools, including a compatible FreeToken server | Live weight updates, automatic checkpoint promotion |
 | Learning | Opt-in observations, proposed memories, bounded feedback reinforcement | Local Ollama or explicitly external OpenAI-compatible embeddings | Autonomous policy/prompt mutation |
-| Corporate Oracle | v10 versioned current/history ledger and atomic checkpoints; v11 accepted-page replay/CAS safety, Unicode candidate indexes, embedding repair, and post-search session taint | Authenticated normalized ingestion API and the configured local/approved-cloud embedding adapter | Bundled/live-qualified provider sidecars, generic prose citation validation, automatic source-to-memory promotion, 4 GiB Oracle claim |
+| Corporate Oracle | v10 versioned current/history ledger and atomic checkpoints; v11 accepted-page replay/CAS safety, Unicode candidate indexes, embedding repair, and post-search session taint | Authenticated ingestion API, configured embedding adapter, and one-shot Linear/Jira read sidecars | Live-qualified external tenants, Slack/email/CRM/ERP sidecars, generic prose citation validation, automatic source-to-memory promotion, 4 GiB Oracle claim |
 | Offline SFT | Nothing runs automatically | Reviewed-export validation, grouped held-out split, guarded MLX QLoRA runner | Online RL, DPO, model upload/serving, promotion |
 | Delegation | Three fixed advisory agents with hard bounds; the project analyst has one scoped read tool and the other two are tool-free | Separately gated configured model routes per task | Arbitrary agents, recursive workers, authority-bearing specialist tools |
 | Notifications | Deterministic templates and durable delivery state | Telegram delivery | Quiet hours, per-user subscriptions, model-authored sends |
@@ -47,7 +48,7 @@ The live product remains a harness around inference models. It is **not** an onl
 | API | Protected POSIX Unix socket, local capability/workspace RBAC, JSON, resumable bounded durable run SSE | Loopback TCP and legacy single-admin/global token; unauthenticated legacy development config | Public/multi-tenant control plane, SSO/per-human identity, cancellation |
 | Terminal UX | Deterministic setup wizard, plain fallback, service-attached full-screen TUI with approval-page traversal | Explicit standalone development mode and hybrid configuration | Cross-platform service lifecycle installer |
 | Evaluation/provenance | Eight-case offline representative corpus; three redacted execution-contract commitments on each new run | Explicit pinned live analyst lane | Automated model/checkpoint promotion or signed build provenance |
-| Integrations | Static local schemas/effects/grants plus workspace and external-data policy; generic Oracle ingest contract | Bounded MCP stdio/Streamable HTTP and declarative JSON API manifests; separately operated connector sidecars may own provider OAuth/pagination | Bundled provider sidecars, harness-owned OAuth, dynamic MCP authority, generic fetch/OpenAPI, resources, tasks, sampling, or elicitation |
+| Integrations | Static local schemas/effects/grants plus workspace and external-data policy; generic Oracle ingest contract | Bounded MCP stdio/Streamable HTTP and declarative JSON API manifests; isolated Linear/Jira polling sidecars with externally managed credentials | Harness-owned OAuth, broad provider SDKs, dynamic MCP authority, generic fetch/OpenAPI, resources, tasks, sampling, or elicitation |
 | Resource posture | `core-4g-v1` with bounded host tools/context/retrieval and optional resident features disabled | Separately qualified one-at-a-time learned sidecars on larger hosts | Model-name-based memory promises or unbounded co-residency |
 
 `local` declares a route's data boundary and is validated against the URL for generic routes; it also participates in ranking. `privacy.localOnly` separately enforces loopback-or-exact-origin policy for model, embedding, enabled Telegram, MCP HTTP, and JSON API clients owned by the harness. It does not firewall plugins, an MCP stdio child, the local model server, or the host, and therefore does not by itself prove process isolation or data residency. The sealed corporate profile has only loopback inference/embedding endpoints and no hosted fallback, while the complete private claim depends on the controls in [private-deployment.md](./private-deployment.md).
@@ -76,7 +77,7 @@ reviewed manifests ──> workspace/external-data guard ──> tool policy / a
                               ├──> exact JSON origin + structural request
                               └──> pinned MCP stdio/HTTP peer + required tools
 
-provider sidecar (OAuth/pagination/rate limits)
+one-shot provider sidecar (fixed reads/pagination/rate limits)
    ──> ingest-only principal + normalized page
         ──> Corporate Oracle current heads + retained revisions + checkpoint
              ├──> current-content embedding (post-commit; lexical fallback)
@@ -104,10 +105,11 @@ The setup wizard is kept outside the runtime authority path: it renders a determ
 
 The Oracle is an evidence ledger for changing source facts, not a second agent,
 workflow engine, vector database, or autonomous learning system. Provider
-sidecars remain outside the harness and own provider OAuth/service accounts,
-token refresh, webhooks or polling, pagination, rate limiting, backoff, and
-normalization. The current repository supplies the generic bounded ingestion
-and read path but no live-qualified provider sidecar.
+sidecars remain outside the resident service and own fixed provider reads,
+polling, pagination, rate limiting, backoff, and normalization. Credential
+authorization/refresh may be a separate operator or identity-broker concern.
+The repository supplies the generic bounded ingestion/read path and isolated
+Linear/Jira implementations, but no external tenant is live-qualified.
 
 ### Ingestion identity and transaction boundary
 
@@ -680,12 +682,13 @@ Not implemented in v0.6:
 - outbound network enforcement based on a route's `local` flag;
 - exactly-once external effects without provider cooperation;
 - independent validation of vendor model/quantization claims;
-- bundled or live-qualified task/CRM/ERP/email/messenger provider sidecars,
+- live-qualified task sidecars or implemented CRM/ERP/email/messenger sidecars,
   generic final-prose citation validation, autonomous source-to-memory
   activation, or a 4 GiB Oracle workload claim.
 
-Hardening priorities are a representative multi-source Oracle evaluation and
-pinned reference sidecars; corporate per-user identity/SSO bound to local
+Hardening priorities are real-tenant Linear/Jira qualification, a representative
+multi-source Oracle evaluation, and Slack/email/HubSpot sidecars; corporate
+per-user identity/SSO bound to local
 grants, credential expiry/rotation/revocation, and guidance for any future
 networked TLS/CSRF boundary; per-event envelope version gates; signed
 build/plugin/model/connector provenance beyond the current redacted run
@@ -768,6 +771,6 @@ There is deliberately no Restate or Temporal migration. A prototype is gated on 
 9. Corporate evidence and reviewed memory remain distinct: a source record can
    support a separately policy-checked proposal, but no source can activate a
    memory, mutate policy/prompts/tools, or train a model.
-10. Provider sidecars and a 4 GiB Oracle deployment remain candidates until the
-   pinned connector and representative multi-source promotion gates pass on
-   target hardware.
+10. Linear/Jira sidecar source is implemented, but an external provider tenant
+   and a 4 GiB Oracle deployment remain candidates until the pinned connector
+   and representative multi-source promotion gates pass on target hardware.

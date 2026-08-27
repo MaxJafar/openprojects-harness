@@ -30,6 +30,7 @@ const SOURCE_ACCOUNT = 'acme-production';
 class ProjectingEmbedding implements EmbeddingAdapter {
   readonly id = 'oracle-test-embedding-v1';
   readonly dimensions = 2;
+  readonly dataBoundary = 'local' as const;
   readonly calls: string[][] = [];
 
   async embed(texts: string[]): Promise<number[][]> {
@@ -101,7 +102,12 @@ describe('CorporateOracle temporal evidence ledger', () => {
       updated: 0,
       unchanged: 0,
       stale: 0,
-      embeddings: { model: embedding.id, stored: 2, failed: 0 },
+      embeddings: {
+        model: embedding.id,
+        dataBoundary: 'local',
+        stored: 2,
+        failed: 0,
+      },
       checkpoint: {
         workspaceId: 'workspace-a',
         source: 'linear',
@@ -140,6 +146,30 @@ describe('CorporateOracle temporal evidence ledger', () => {
       activeRecords: 2,
       deletedRecords: 0,
     }]);
+
+    const originalPutEmbedding = storage.putCorporateRecordEmbedding.bind(storage);
+    let embeddingPuts = 0;
+    const partialPut = vi.spyOn(storage, 'putCorporateRecordEmbedding').mockImplementation((...args) => {
+      embeddingPuts += 1;
+      if (embeddingPuts === 2) throw new Error('simulated second vector write failure');
+      return originalPutEmbedding(...args);
+    });
+    const partial = await oracle.ingestBatch(corporateBatch({
+      source: 'partial-vector-source',
+      sourceAccountId: 'partial-vector-account',
+      cursor: 'partial-vector-page-1',
+      records: [
+        corporateRecord({ externalId: 'partial-vector-1' }),
+        corporateRecord({ externalId: 'partial-vector-2' }),
+      ],
+    }));
+    expect(partial.embeddings).toMatchObject({
+      stored: 1,
+      failed: 1,
+      error: 'simulated second vector write failure',
+    });
+    expect(partial.embeddings.stored + partial.embeddings.failed).toBe(partial.records.length);
+    partialPut.mockRestore();
 
     await expect(oracle.ingestBatch(corporateBatch({
       source: 'jira',
@@ -471,6 +501,7 @@ describe('CorporateOracle temporal evidence ledger', () => {
       inserted: 1,
       embeddings: {
         model: offline.id,
+        dataBoundary: 'unreported',
         stored: 0,
         failed: 1,
         error: 'embedding service offline secret detail is not required',
@@ -774,6 +805,7 @@ describe('Corporate Oracle control API', () => {
       agentRunInvoked: boolean;
       chatModelInvoked: boolean;
       embeddingInvoked: boolean;
+      embeddings: { dataBoundary: string };
       records: Array<{ id: string }>;
       checkpoint: { source: string; sourceAccountId: string; cursor: string; recordsSeen: number };
     };
@@ -782,6 +814,7 @@ describe('Corporate Oracle control API', () => {
       agentRunInvoked: false,
       chatModelInvoked: false,
       embeddingInvoked: true,
+      embeddings: { dataBoundary: 'local' },
       checkpoint: {
         source: 'linear-connector',
         sourceAccountId: SOURCE_ACCOUNT,
@@ -825,6 +858,7 @@ describe('Corporate Oracle control API', () => {
     expect(await backfilled.json()).toMatchObject({
       schema: 'openprojects.oracle-embedding-backfill.v1',
       candidates: 1,
+      dataBoundary: 'local',
       stored: 1,
       failed: 0,
       actionTaken: true,

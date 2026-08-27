@@ -37,6 +37,7 @@ import {
   TranscriptionTimeoutError,
   WhisperCppTranscriptionAdapter,
 } from '../src/adapters/transcription.js';
+import { createNetworkPolicy } from '../src/privacy/network-policy.js';
 import type {
   ModelAdapter,
   ModelRequest,
@@ -77,6 +78,7 @@ describe('local embedding adapters', () => {
 
     expect(firstPass).toEqual(secondPass);
     expect(firstPass).toEqual(otherInstance);
+    expect(first.dataBoundary).toBe('local');
     expect(firstPass[0]).toHaveLength(64);
     expect(firstPass[0]).not.toEqual(firstPass[1]);
     for (const vector of firstPass) {
@@ -112,6 +114,8 @@ describe('local embedding adapters', () => {
     await expect(inferred.embed(['one', 'two'])).rejects.toThrow(
       'Ollama returned embeddings with inconsistent dimensions',
     );
+    expect(configured.dataBoundary).toBe('local');
+    expect(inferred.dataBoundary).toBe('local');
 
     expect(observed).toEqual([
       {
@@ -195,6 +199,7 @@ describe('local embedding adapters', () => {
     }]);
     expect(adapter.id).toContain('test-generation-v1');
     expect(adapter.id).not.toContain(baseUrl);
+    expect(adapter.dataBoundary).toBe('local');
   });
 
   it('rejects compatible embedding index, dimension, and model identity drift', async () => {
@@ -237,6 +242,19 @@ describe('local embedding adapters', () => {
       dimensions: 3,
       timeoutMs: 3_000,
     };
+    const externalPolicy = createNetworkPolicy({ localOnly: false, allowedOrigins: [] });
+    const external = createEmbeddingAdapter({
+      ...base,
+      apiKeyEnv: 'EMBEDDING_TEST_KEY',
+      externalData: 'allow',
+    }, externalPolicy, { EMBEDDING_TEST_KEY: 'secret' });
+    const remoteOllama = new OllamaEmbeddingAdapter({
+      model: 'bge-m3:latest',
+      baseUrl: 'https://ollama.example.test',
+      networkPolicy: externalPolicy,
+    });
+    expect(external.dataBoundary).toBe('external');
+    expect(remoteOllama.dataBoundary).toBe('external');
 
     expect(() => createEmbeddingAdapter({
       ...base,

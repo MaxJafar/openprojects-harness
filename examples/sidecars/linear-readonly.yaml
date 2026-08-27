@@ -1,0 +1,32 @@
+schema: openprojects.sidecar.v1
+id: linear-connector
+workspaceId: local
+stream: issues
+localProjectId: project-atlas
+
+oracle:
+  # Secure default for macOS/Linux. Plain loopback TCP authenticates the client,
+  # not the server, and is rejected for sync. Windows needs reviewed loopback
+  # HTTPS until an equivalent protected local transport is implemented.
+  baseUrl: http://localhost
+  socketPath: ../../run/openprojects.sock
+  tokenFile: ../../secrets/linear-ingest.token
+
+state:
+  # Holds only the owner lock and a crash-recovery page while a local ingest
+  # acknowledgement is unresolved. Keep this directory owner-only.
+  directory: ../../data/sidecars/linear
+
+provider:
+  kind: linear
+  tokenEnv: OP_LINEAR_SIDECAR_TOKEN
+  authorization: api-key
+  expectedAccountId: REPLACE_WITH_LINEAR_ORGANIZATION_ID
+  teamId: REPLACE-WITH-LINEAR-TEAM-UUID
+
+limits:
+  pageSize: 50
+  timeoutMs: 15000
+  maxResponseBytes: 524288
+  overlapSeconds: 120
+  maxPagesPerRun: 20

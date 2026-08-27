@@ -28,6 +28,7 @@ import {
   assertUnixSocketPathAvailable,
   listenOnUnixSocket,
   probeUnixSocketPath,
+  resolveProtectedUnixSocketClientPath,
   resolveUnixSocketPath,
   UnixSocketLiveEndpointError,
   UnixSocketPathOccupiedError,
@@ -195,6 +196,20 @@ describe.skipIf(!POSIX)('Unix control server endpoint', () => {
     const endpoint = await startEndpoint((_request, response) => response.end('ok'));
     expect(lstatSync(endpoint.lease.socketPath).isSocket()).toBe(true);
     expect(lstatSync(endpoint.lease.socketPath).mode & 0o7777).toBe(0o600);
+    expect(resolveProtectedUnixSocketClientPath(endpoint.lease.socketPath)).toBe(
+      endpoint.lease.socketPath,
+    );
+
+    chmodSync(endpoint.lease.socketPath, 0o666);
+    expect(() => resolveProtectedUnixSocketClientPath(endpoint.lease.socketPath)).toThrow(
+      'mode 0600',
+    );
+    chmodSync(endpoint.lease.socketPath, 0o600);
+    chmodSync(dirname(endpoint.lease.socketPath), 0o755);
+    expect(() => resolveProtectedUnixSocketClientPath(endpoint.lease.socketPath)).toThrow(
+      'parent must have mode 0700',
+    );
+    chmodSync(dirname(endpoint.lease.socketPath), 0o700);
 
     const fetch = createUnixSocketFetch({ socketPath: endpoint.lease.socketPath });
     expect(await (await fetch('http://localhost/health')).text()).toBe('ok');

@@ -77,7 +77,7 @@ test('pins the complete Vitest corpus and exact platform skip multisets', () => 
   assert.equal(Object.values(EXPECTED_VITEST_FILE_TESTS).reduce((sum, count) => sum + count, 0), EXPECTED_VITEST_TESTS);
   assert.equal(expectedVitestSkips('darwin').length, 0);
   assert.equal(expectedVitestSkips('linux').length, 2);
-  assert.equal(expectedVitestSkips('win32').length, 29);
+  assert.equal(expectedVitestSkips('win32').length, 33);
 
   for (const platform of ['darwin', 'linux', 'win32']) {
     const skipped = expectedVitestSkips(platform).map((item) => ({

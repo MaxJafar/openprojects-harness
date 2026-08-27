@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,11 +62,70 @@ try {
   await expectAbsent(join(consumer, 'openprojects.local.yaml'));
   await expectAbsent(join(consumer, 'data'));
 
+  const sidecarConfig = join(consumer, 'sidecar-package-smoke.json');
+  const sidecarToken = join(consumer, 'missing-ingest.token');
+  const sidecarState = join(consumer, 'sidecar-state');
+  await writeFile(sidecarConfig, `${JSON.stringify({
+    schema: 'openprojects.sidecar.v1',
+    id: 'package-sidecar',
+    workspaceId: 'package-workspace',
+    stream: 'issues',
+    oracle: {
+      baseUrl: 'https://127.0.0.1:4310',
+      tokenFile: './missing-ingest.token',
+    },
+    state: { directory: './sidecar-state' },
+    provider: {
+      kind: 'linear',
+      tokenEnv: 'OPENPROJECTS_PACKAGE_SMOKE_PROVIDER_TOKEN',
+      authorization: 'api-key',
+      expectedAccountId: 'package-account',
+      teamId: '4f7319c0-9a76-4ea0-b22f-0060c3195433',
+    },
+    limits: {
+      pageSize: 10,
+      timeoutMs: 5_000,
+      maxResponseBytes: 131_072,
+      overlapSeconds: 60,
+      maxPagesPerRun: 2,
+    },
+  }, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+  const sidecarCheck = await run(process.execPath, [
+    cli,
+    'sidecars',
+    'check',
+    '--config',
+    sidecarConfig,
+    '--json',
+  ], consumer);
+  const sidecarReport = parseJsonObject(sidecarCheck.stdout, 'Packaged sidecar check');
+  if (
+    sidecarReport.schema !== 'openprojects.sidecar-report.v1'
+    || sidecarReport.mode !== 'check'
+    || sidecarReport.overall !== 'ready'
+    || sidecarReport.testSeam !== false
+  ) {
+    throw new Error('Packaged sidecar check returned an unexpected report');
+  }
+  const serializedSidecarReport = JSON.stringify(sidecarReport);
+  if (
+    serializedSidecarReport.includes('OPENPROJECTS_PACKAGE_SMOKE_PROVIDER_TOKEN')
+    || serializedSidecarReport.includes('package-account')
+    || serializedSidecarReport.includes('missing-ingest.token')
+  ) {
+    throw new Error('Packaged sidecar check disclosed credential configuration or account identity');
+  }
+  await expectAbsent(sidecarToken);
+  await expectAbsent(sidecarState);
+
   const imported = await run(process.execPath, [
     '--input-type=module',
     '--eval',
     `const api = await import('openprojects-harness');
-     if (typeof api.createApp !== 'function' || typeof api.createEmbeddingAdapter !== 'function') {
+     if (typeof api.createApp !== 'function'
+       || typeof api.createEmbeddingAdapter !== 'function'
+       || typeof api.loadSidecarConfig !== 'function'
+       || typeof api.runSidecarSync !== 'function') {
        throw new Error('package root exports are incomplete');
      }`,
   ], consumer);
@@ -75,7 +134,7 @@ try {
 
   console.log(
     `Packed install smoke passed: ${packResult.filename}; `
-      + `${tarballStat.size} bytes; CLI, dry-run, and package exports verified`,
+      + `${tarballStat.size} bytes; CLI, sidecar check, dry-run, and package exports verified`,
   );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
@@ -108,6 +167,19 @@ async function expectAbsent(path) {
 
 function requireOutput(output, expected) {
   if (!output.includes(expected)) throw new Error(`Smoke output is missing: ${expected}`);
+}
+
+function parseJsonObject(value, context) {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${context} did not return JSON`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${context} did not return an object`);
+  }
+  return parsed;
 }
 
 function run(command, args, cwd) {

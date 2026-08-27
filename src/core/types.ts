@@ -318,9 +318,13 @@ export interface ModelRouteSelection {
   fallbackFrom?: string;
 }
 
+export type EmbeddingDataBoundary = 'local' | 'external';
+
 export interface EmbeddingAdapter {
   readonly id: string;
   readonly dimensions?: number;
+  /** Declared disclosure boundary; absent custom adapters are reported as unreported evidence. */
+  readonly dataBoundary?: EmbeddingDataBoundary;
   embed(texts: string[], signal?: AbortSignal): Promise<number[][]>;
 }
 

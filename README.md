@@ -26,7 +26,9 @@ supervisor does not yet enforce citation presence in its final-output schema.
 After a completed `oracle_search`, every external-boundary tool and every local
 effect beyond read/draft is forced through exact approval for the rest of that
 session, including later runs; only a new session starts untainted. No
-provider sidecar or 4 GiB Oracle workload has yet been live-qualified.
+the bundled one-shot Linear/Jira sidecars remain isolated from the agent and
+model. Their deterministic contract is implemented, but no external tenant or
+4 GiB Oracle workload has yet been live-qualified.
 
 The product direction includes local image/document vision under the same on-prem boundary. v0.6 adds a standalone, no-database local-VLM readiness evaluator and a strict ephemeral media/adapter foundation. The product still does not ingest images, persist visual results, or send multimodal messages through an agent run, so vision is not advertised as implemented.
 
@@ -41,7 +43,7 @@ The current implementation is **v0.6.0**. The configuration schema intentionally
 | Memory approval | Inferred memories are excluded from retrieval until an allowlisted operator who is also a group admin activates them | Human-reviewed |
 | Retrieval | Selected embedding plus lexical/strength/reward scoring; lexical fallback if embedding fails | In-process 256-dimensional feature-hash embedding |
 | Reviewed feedback learning | Applies bounded feedback updates only to active memories actually supplied to the run; idempotent by feedback ID and never changes model weights | Enabled |
-| Corporate Oracle foundation | Schema v10 stores normalized, account-bound current heads, retained revisions, and atomic checkpoints; v11 adds accepted-page replay history, Unicode FTS candidate indexes, and bounded embedding repair | Ingestion is API-only; no provider sidecar is bundled or live-qualified |
+| Corporate Oracle foundation | Schema v10 stores normalized, account-bound current heads, retained revisions, and atomic checkpoints; v11 adds accepted-page replay history, Unicode FTS candidate indexes, bounded embedding repair, and one-shot Linear/Jira read sidecars | Sidecars are disabled until separately configured; no external tenant is live-qualified |
 | Oracle agent tools | `oracle_search` returns workspace/project-scoped, cited, freshness-bearing untrusted evidence and taints later same-session actions/external calls into exact approval; `oracle_sources` reports stream coverage and freshness | Read-only and included by the standard wizard, omitted from `core-4g-v1`; a new session clears the taint, while generic prose citation validation is not implemented |
 | Model routing | Filters by task, quality, context, and paid daily budget, then scores cost, quality, reliability, latency, and learned reward | One zero-cost mock local route in the sample config |
 | Specialist lanes | Three fixed advisory roles with depth, call, and concurrency limits; `project-analyst` has one host-scoped read tool, while the other two remain tool-free | Enabled when a separately eligible route is usable |
@@ -327,12 +329,48 @@ permissions, response shape, prompt-injection resistance, approval behavior,
 and crash recovery still require staging evaluation. Full contract and current
 provider compatibility notes are in [Reviewed integrations](./docs/integrations.md).
 
+The first executable Oracle sidecars are [Linear and Jira Cloud](./docs/provider-sidecars.md).
+They use code-fixed reads, pre/post account verification, finite overlapping
+windows, an owner lock, and a synchronized pending-page spool for byte-identical
+replay after an ambiguous local acknowledgement:
+
+```bash
+openprojects sidecars check --config /protected/linear-sidecar.yaml
+openprojects sidecars probe --config /protected/linear-sidecar.yaml --json
+openprojects sidecars sync --config /protected/linear-sidecar.yaml --json
+```
+
+These commands add no provider operation to the model. `probe` never writes the
+Oracle; `sync` correctly reports that provider writes are absent while local
+Oracle ingestion writes occur. A successful one-shot command reports `ready`,
+not `qualified`; qualification requires the separate multi-page, replay,
+unchanged-repeat, artifact, tenant, and host evidence gate. No real external
+tenant has passed that gate yet.
+
+Linear uses only fixed GraphQL query documents. Jira requires exactly the
+classic `read:jira-work` grant and emits its fixed JQL time bounds as Unix epoch
+milliseconds so site timezone and DST cannot reinterpret the UTC checkpoint.
+Both adapters reject impossible chronology and any returned update outside the
+exact requested window before staging it.
+Every decoded provider-response string is also scrubbed of the exact current
+provider credential, followed by a complete normalized-page secret guard before
+the crash spool can be written.
+
+The shipped templates use the protected POSIX Unix socket. Sidecar sync refuses
+plaintext loopback TCP because it authenticates the client but not the Oracle
+server. The POSIX client canonicalizes the socket parent and rechecks owner,
+`0700` parent mode, socket type/owner, and `0600` socket mode immediately before
+each request. Windows needs reviewed loopback HTTPS or equivalent protected IPC
+and remains unqualified for that deployment path.
+
 ### Corporate Oracle and connector sidecars
 
 The Oracle ingestion boundary is different from an agent integration tool. A
-provider-specific sidecar owns OAuth or service-account login, token refresh,
-pagination, webhooks, rate limits, provider SDKs, and projection of proprietary
-payloads. It sends bounded normalized pages to `POST /api/oracle/sync` using a
+provider-specific sidecar owns pagination, rate limits, provider identity, and
+projection of proprietary payloads. Authentication lifecycle can remain an
+external operator/service concern: the bundled v1 Linear/Jira lane consumes a
+restricted API key or pre-issued token and does not perform OAuth login or
+refresh. It sends bounded normalized pages to `POST /api/oracle/sync` using a
 workspace-scoped principal with only the `ingest` capability. When control auth
 is enabled, the principal ID is the source identity; request content cannot
 impersonate another connector. Each page must also supply the immutable
@@ -371,8 +409,12 @@ what the harness had recorded by that host time. Either or both may be used.
 Sync never launches an agent run or chat-completion LLM. Post-commit vector
 work may invoke the configured local or explicitly approved cloud embedding
 model. The receipt therefore reports `agentRunInvoked: false`,
-`chatModelInvoked: false`, and an accurate `embeddingInvoked`; legacy
-`modelInvoked: false` is retained and means no agent/chat completion.
+`chatModelInvoked: false`, the embedding adapter identity, declared local versus
+external data boundary, bounded stored/failed counts, and an accurate
+`embeddingInvoked`; legacy `modelInvoked: false` is retained and means no
+agent/chat completion. Sidecar reports aggregate that evidence and separately
+mark an unacknowledged POST as a possible embedding invocation rather than
+claiming no disclosure.
 
 This creates two complementary forms of learning over time:
 
@@ -670,8 +712,8 @@ Starting it requires a local snapshot whose exact files match the reviewed Qwen 
 ## Implemented, optional, and future
 
 - **Implemented/default:** SQLite durability through schema v11 with exclusive runtime-owner locking, supervisor loop, approvals, paged TUI approval traversal, deterministic mock route, the eight-case representative safety/durability corpus, redacted content-addressed run commitments, fail-closed loopback-or-exact-origin HTTP policy, protected POSIX Unix control socket, local capability/workspace enforcement including ingest-only connector principals, the versioned Corporate Oracle ledger, accepted-page replay and checkpoint-CAS safety, Unicode candidate indexes, embedding repair, read-only cited Oracle tools, and post-search session taint, one shared core run permit, globally capped/resumable bounded run SSE, finite prompt/collection reads, Telegram disabled, opt-in group observation, proposed-memory review, feature-hash embeddings, hybrid retrieval, attributed feedback reinforcement, bounded advisory specialists, the fail-closed one-tool project-analyst lane and its isolated live gate, deterministic notification state, JSONL export.
-- **Implemented/optional:** hosted or local OpenAI-compatible routes, strict loopback MLX-LM text/tool inference, an authenticated alias-bound `llama.cpp` adapter and standalone whole-process 4 GiB gate, strict singleton/alias-bound FreeToken inference with mock conformance evidence, exact reviewed corporate origins, local Ollama or explicitly external OpenAI-compatible semantic embeddings, `whisper.cpp`, explicitly enabled Telegram delivery, reviewed static MCP stdio/Streamable-HTTP and declarative JSON API integrations behind existing policy/approval controls, no-pull appliance qualification, macOS `launchd` templates, and a separate fail-closed reviewed MLX QLoRA lab.
-- **Not implemented:** bundled or live-qualified provider Oracle sidecars, a 4 GiB Oracle workload claim, generic final-prose citation validation, autonomous source-to-memory promotion, online reinforcement learning, automatic fine-tuning or checkpoint promotion, a durable consent/revocation training ledger, a production base-versus-candidate promotion runner, dynamic MCP tools/resources/prompts/tasks/sampling/elicitation or harness-owned OAuth, generic fetch/OpenAPI import, Restate/Temporal migration, silent group surveillance, unbounded/autonomous worker agents, arbitrary shell tools, semantic secret classification, automatic retention scheduler, quiet hours, SSO/per-human identity proof, online token lifecycle management, or a public multi-tenant control plane.
+- **Implemented/optional:** hosted or local OpenAI-compatible routes, strict loopback MLX-LM text/tool inference, an authenticated alias-bound `llama.cpp` adapter and standalone whole-process 4 GiB gate, strict singleton/alias-bound FreeToken inference with mock conformance evidence, exact reviewed corporate origins, local Ollama or explicitly external OpenAI-compatible semantic embeddings, `whisper.cpp`, explicitly enabled Telegram delivery, reviewed static MCP stdio/Streamable-HTTP and declarative JSON API integrations behind existing policy/approval controls, one-shot bounded Linear/Jira Oracle sidecars with crash-safe local replay, no-pull appliance qualification, macOS `launchd` templates, and a separate fail-closed reviewed MLX QLoRA lab.
+- **Not implemented or not live-qualified:** Slack/email/CRM/ERP Oracle sidecars, any external-tenant live sidecar pass, provider OAuth login/refresh/rotation, provider deletion/archive reconciliation, a complete 4 GiB Oracle workload claim, generic final-prose citation validation, autonomous source-to-memory promotion, online reinforcement learning, automatic fine-tuning or checkpoint promotion, a durable consent/revocation training ledger, a production base-versus-candidate promotion runner, dynamic MCP tools/resources/prompts/tasks/sampling/elicitation or harness-owned OAuth, generic fetch/OpenAPI import, Restate/Temporal migration, silent group surveillance, unbounded/autonomous worker agents, arbitrary shell tools, semantic secret classification, automatic retention scheduler, quiet hours, SSO/per-human identity proof, online token lifecycle management, or a public multi-tenant control plane.
 
 ## Open source and licensing
 
@@ -725,4 +767,4 @@ repository-owner decisions.
 - [Contribution guide](./CONTRIBUTING.md)
 - [Third-party notices](./THIRD_PARTY_NOTICES.md)
 
-v0.5 added reviewed static MCP stdio/Streamable-HTTP and declarative JSON API integrations, independent external-data/workspace gates, offline validation with explicit live probing, and manifest-bound run commitments. v0.6 adds the standalone local-VLM readiness gate and strict ephemeral media/adapter foundation without opening a product ingestion path. Unreleased schema v10 adds normalized Oracle ingest, temporal retained revisions, current heads, checkpoints, and read-only cited retrieval; schema v11 hardens accepted-page replay and cursor-chain CAS safety, Unicode candidate selection, embedding repair, URL handling, and post-search session approval. Generic prose citations are still not mechanically enforced, and no provider sidecar or 4 GiB Oracle deployment has been live-qualified. The recorded M3/8 GB evidence supports only the exact sequential lanes described above: BGE-M3 is qualified for semantic embeddings and pinned Qwen 4B passed the compact analyst corpus, while deployment promotion and memory re-embedding remain explicit operator actions. No live VLM result exists yet; the supervisor and product vision remain unqualified, and no Restate/Temporal migration is justified without the documented measured trigger.
+v0.5 added reviewed static MCP stdio/Streamable-HTTP and declarative JSON API integrations, independent external-data/workspace gates, offline validation with explicit live probing, and manifest-bound run commitments. v0.6 adds the standalone local-VLM readiness gate and strict ephemeral media/adapter foundation without opening a product ingestion path. Unreleased schema v10 adds normalized Oracle ingest, temporal retained revisions, current heads, checkpoints, and read-only cited retrieval; schema v11 hardens accepted-page replay and cursor-chain CAS safety, Unicode candidate selection, embedding repair, URL handling, and post-search session approval. The first one-shot Linear/Jira polling sidecars now implement fixed live-read transports, account verification, bounded windows, and crash-safe local replay, but no external tenant or 4 GiB Oracle deployment has passed the live promotion gate. Generic prose citations are still not mechanically enforced. The recorded M3/8 GB evidence supports only the exact sequential lanes described above: BGE-M3 is qualified for semantic embeddings and pinned Qwen 4B passed the compact analyst corpus, while deployment promotion and memory re-embedding remain explicit operator actions. No live VLM result exists yet; the supervisor and product vision remain unqualified, and no Restate/Temporal migration is justified without the documented measured trigger.

@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 
-import type { AppConfig, EmbeddingAdapter } from '../core/types.js';
+import type {
+  AppConfig,
+  EmbeddingAdapter,
+  EmbeddingDataBoundary,
+} from '../core/types.js';
 import {
   validateApiBaseUrl,
   validateHttpApiKey,
@@ -38,6 +42,7 @@ export interface HashEmbeddingOptions {
 export class DeterministicHashEmbeddingAdapter implements EmbeddingAdapter {
   readonly id: string;
   readonly dimensions: number;
+  readonly dataBoundary = 'local' as const;
 
   constructor(options: HashEmbeddingOptions = {}) {
     this.id = options.id ?? 'builtin-hash-v1';
@@ -74,6 +79,7 @@ export interface OllamaEmbeddingOptions {
 export class OllamaEmbeddingAdapter implements EmbeddingAdapter {
   readonly id: string;
   readonly dimensions?: number;
+  readonly dataBoundary: EmbeddingDataBoundary;
   readonly #model: string;
   readonly #endpoint: string;
   readonly #tagsEndpoint: string;
@@ -95,6 +101,9 @@ export class OllamaEmbeddingAdapter implements EmbeddingAdapter {
     }
     this.#endpoint = ollamaEmbedEndpoint(options.baseUrl ?? DEFAULT_OLLAMA_URL);
     this.#tagsEndpoint = ollamaTagsEndpoint(options.baseUrl ?? DEFAULT_OLLAMA_URL);
+    this.dataBoundary = isLoopbackHostname(new URL(this.#endpoint).hostname)
+      ? 'local'
+      : 'external';
     this.#timeoutMs = positiveInteger(options.timeoutMs ?? DEFAULT_OLLAMA_TIMEOUT_MS, 'timeoutMs');
     this.#headers = validateHttpHeaders(options.headers, 'Ollama embedding', ['content-type']);
     this.#networkPolicy = options.networkPolicy ?? createNetworkPolicy();
@@ -219,6 +228,7 @@ export interface OpenAICompatibleEmbeddingOptions {
 export class OpenAICompatibleEmbeddingAdapter implements EmbeddingAdapter {
   readonly id: string;
   readonly dimensions: number;
+  readonly dataBoundary: EmbeddingDataBoundary;
   readonly #model: string;
   readonly #endpoint: string;
   readonly #apiKey: string | undefined;
@@ -236,6 +246,7 @@ export class OpenAICompatibleEmbeddingAdapter implements EmbeddingAdapter {
     this.#model = options.model;
     this.#endpoint = compatibleEmbeddingEndpoint(baseUrl);
     this.#external = !isLoopbackHostname(new URL(this.#endpoint).hostname);
+    this.dataBoundary = this.#external ? 'external' : 'local';
     if (this.#external && !options.apiKey) {
       throw new Error('OpenAI-compatible embedding API key is required outside loopback');
     }

@@ -79,6 +79,30 @@ export function resolveUnixSocketPath(socketPath: string): string {
 }
 
 /**
+ * Resolve and authenticate an existing Unix control socket for a local client.
+ * The returned path uses the real parent directory; callers should repeat this
+ * check immediately before connecting. A same-owner replacement remains inside
+ * the local account trust boundary.
+ */
+export function resolveProtectedUnixSocketClientPath(socketPath: string): string {
+  const resolved = canonicalUnixSocketPath(socketPath);
+  let stats: Stats;
+  try {
+    stats = lstatSync(resolved);
+  } catch {
+    throw new UnixSocketEndpointError('The protected Unix control socket could not be inspected');
+  }
+  if (!stats.isSocket()) {
+    throw new UnixSocketEndpointError('The Unix control socket path is occupied by a non-socket leaf');
+  }
+  assertOwnedByEffectiveUser(stats, 'Unix control socket');
+  if (permissionBits(stats) !== PROTECTED_SOCKET_MODE) {
+    throw new UnixSocketEndpointError('The existing Unix control socket must have mode 0600');
+  }
+  return resolved;
+}
+
+/**
  * Conservatively probes an existing protected socket without modifying it.
  * A successful connect proves only that a listener accepted the local
  * connection; an unresponsive result is evidence for the manual recovery

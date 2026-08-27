@@ -58,6 +58,8 @@
     "examples/integrations/*.md",
     "examples/integrations/*.ndjson",
     "examples/integrations/*.yaml",
+    "examples/sidecars/*.yaml",
+    "examples/sidecars/*.md",
     "examples/frameworks/ai-sdk-mcp/*.json",
     "examples/frameworks/ai-sdk-mcp/*.md",
     "examples/frameworks/ai-sdk-mcp/src/*.ts",

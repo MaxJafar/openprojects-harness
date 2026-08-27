@@ -1,0 +1,30 @@
+schema: openprojects.sidecar.v1
+id: jira-connector
+workspaceId: local
+stream: issues
+localProjectId: project-atlas
+
+oracle:
+  # Secure macOS/Linux default; see the Linear template for Windows/TCP limits.
+  baseUrl: http://localhost
+  socketPath: ../../run/openprojects.sock
+  tokenFile: ../../secrets/jira-ingest.token
+
+state:
+  directory: ../../data/sidecars/jira
+
+provider:
+  kind: jira
+  tokenEnv: OP_JIRA_SIDECAR_TOKEN
+  # This v1 lane requires the exact classic read:jira-work grant. It rejects
+  # additional write/manage scopes and does not qualify the OAuth lifecycle.
+  expectedAccountId: REPLACE_WITH_ATLASSIAN_CLOUD_ID
+  projectKey: REPLACE_PROJECT_KEY
+
+limits:
+  pageSize: 50
+  timeoutMs: 15000
+  maxResponseBytes: 524288
+  # Jira search can lag; keep an overlap and qualify it against the real site.
+  overlapSeconds: 600
+  maxPagesPerRun: 20

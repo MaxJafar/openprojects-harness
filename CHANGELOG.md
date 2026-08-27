@@ -6,6 +6,17 @@ separately.
 
 ## Unreleased
 
+- Added isolated one-shot read-only Corporate Oracle sidecars for Linear and
+  Jira Cloud. They use code-fixed provider queries, pre/post immutable account
+  verification, finite overlapping pagination windows, bounded retry/response
+  handling, exact reflected-credential scrubbing, stable issue projection, an
+  ingest-only Oracle client, and a
+  synchronized owner-only pending-page spool for byte-identical replay after an
+  ambiguous local acknowledgement. Offline validation and explicit live
+  `probe`/`sync` reports keep test seams, OAuth lifecycle, deletion
+  reconciliation, physical Windows, target Linux, full 4 GB Oracle, and vision
+  claims separate.
+
 ### Added
 
 - A strict `core-4g-v1` profile with small tool, step, context, retrieval, and

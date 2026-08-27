@@ -6,6 +6,7 @@ import type {
   CorporateSourceSummary,
   CorporateSyncState,
   EmbeddingAdapter,
+  EmbeddingDataBoundary,
   JsonObject,
   JsonValue,
 } from '../core/types.js';
@@ -82,6 +83,7 @@ export interface CorporateIngestResult {
   checkpoint: CorporateSyncState;
   embeddings: {
     model: string;
+    dataBoundary: EmbeddingDataBoundary | 'unreported';
     stored: number;
     failed: number;
     error?: string;
@@ -115,6 +117,7 @@ export interface CorporateEmbeddingBackfillInput {
 
 export interface CorporateEmbeddingBackfillResult {
   model: string;
+  dataBoundary: EmbeddingDataBoundary | 'unreported';
   candidates: number;
   stored: number;
   failed: number;
@@ -325,6 +328,7 @@ export class CorporateOracle {
     let firstError: string | undefined;
     for (let offset = 0; offset < records.length; offset += EMBEDDING_BATCH_SIZE) {
       const batch = records.slice(offset, offset + EMBEDDING_BATCH_SIZE);
+      let storedInBatch = 0;
       try {
         const vectors = await this.embedding.embed(batch.map(corporateEmbeddingText), signal);
         if (vectors.length !== batch.length) {
@@ -342,14 +346,19 @@ export class CorporateOracle {
             vector,
           );
           storedCount += 1;
+          storedInBatch += 1;
         }
       } catch (error) {
-        failed += batch.length;
+        // Earlier writes in this batch are already durable. Count only the
+        // failing item and unattempted remainder so receipt totals cannot
+        // double-count a partially stored batch.
+        failed += batch.length - storedInBatch;
         firstError ??= safeError(error);
       }
     }
     return {
       model: this.embedding.id,
+      dataBoundary: this.embedding.dataBoundary ?? 'unreported',
       stored: storedCount,
       failed,
       ...(firstError ? { error: firstError } : {}),

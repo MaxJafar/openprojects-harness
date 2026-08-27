@@ -1478,6 +1478,7 @@ function corporateIngestReceipt(result: CorporateIngestResult): JsonValue {
     },
     embeddings: {
       model: result.embeddings.model,
+      dataBoundary: result.embeddings.dataBoundary,
       stored: result.embeddings.stored,
       failed: result.embeddings.failed,
       error: result.embeddings.error ?? null,

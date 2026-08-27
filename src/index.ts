@@ -16,6 +16,13 @@ export * from './integrations/json-api.js';
 export * from './integrations/configured.js';
 export * from './integrations/policy.js';
 export * from './integrations/check.js';
+export * from './sidecars/types.js';
+export * from './sidecars/config.js';
+export * from './sidecars/bounded-http.js';
+export * from './sidecars/oracle-client.js';
+export * from './sidecars/state.js';
+export * from './sidecars/providers/index.js';
+export * from './sidecars/runner.js';
 export * from './core/types.js';
 export {
   AgentRuntime,

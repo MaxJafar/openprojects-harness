@@ -89,22 +89,29 @@ tool and local effect beyond read/draft, including later runs. The
 generic supervisor still does not mechanically validate citations in final
 prose.
 
-Provider OAuth, pagination, webhooks/polling, rate limits, and proprietary
-projection belong in separately deployed, pinned sidecars. No such provider
-sidecar has yet passed a live qualification, and the existing 4 GiB evidence
-does not cover an Oracle dataset or connector process.
+Provider OAuth lifecycle, webhooks, and broad vendor SDKs remain outside the
+resident harness. The first pinned one-shot sidecar lane now implements Linear
+and Jira identity reads, bounded polling/pagination, projection, and crash-safe
+Oracle handoff without an SDK dependency. Neither provider has yet passed a
+real-tenant live qualification, and the existing 4 GiB evidence does not cover
+an Oracle dataset or connector process.
 
 ## Active gate — over-time PM and Oracle qualification
 
 The next supported product slice is read-mostly and evidence-driven:
 
-1. Add a representative temporal PM corpus covering deadline drift, ownership
+1. Qualify the exact Linear and Jira sidecar artifacts against disposable
+   provider test data and a staging Oracle: force pagination, interruption,
+   byte-identical pending replay, account stability, unchanged repeat, rate
+   limits, and a request ledger with zero provider writes. Static token use is
+   a separate claim from OAuth consent/refresh/rotation.
+2. Add a representative temporal PM corpus covering deadline drift, ownership
    changes, blockers, dependencies, CRM-versus-ticket contradictions, missing
    source coverage, prompt injection inside records, “what source state was
    effective by this provider update time?”, and “what had the harness actually
    recorded by this host time?” questions. Evaluate `asOf` and `knownAt`
    independently and together.
-2. Prove workspace/project/source/account isolation, stale and out-of-order
+3. Prove workspace/project/source/account isolation, stale and out-of-order
    delivery, exact resume, predecessor-CAS rejection of delayed/concurrent
    pages against native and migrated checkpoints, latest and old-page replay
    with the original predecessor and without checkpoint regression, cursorless
@@ -112,22 +119,25 @@ The next supported product slice is read-mostly and evidence-driven:
    repair/bounded admin backfill, Unicode retrieval, source-URL rejection, crash recovery,
    citation/freshness quality, deletion tombstones, and source erasure against
    that corpus.
-3. Build one pinned read-only task-tracker sidecar and one pinned communication
-   sidecar using the generic ingest contract. Each must own provider OAuth or
-   service identity, pagination, rate limits, backoff, secret handling, and
-   account identity outside the harness.
-4. Then qualify a CRM lane and an open/self-hostable ERP lane before adding
-   broader vendor coverage. A provider name enters supported documentation only
-   after its exact sidecar version and scopes pass staging evidence.
-5. Measure realistic record counts, sync pages, index/database growth, query
+4. Reuse the contract for Slack public allowlisted channels, a provider-specific
+   read-only email API, and HubSpot companies. Generic IMAP is deferred unless
+   its broader authorization grants are acceptable and separately documented.
+5. Run the exact connector commit on the maintainer's physical Windows device,
+   including loopback auth, restart/spool recovery, Task Scheduler identity,
+   firewall posture, and independent NTFS ACL evidence. Hosted Windows CI is
+   not a substitute.
+6. Then qualify an open/self-hostable ERP lane before broader vendor coverage.
+   A provider name enters supported documentation only after its exact sidecar
+   version, tenant hash, scopes, and host pass staging evidence.
+7. Measure realistic record counts, sync pages, index/database growth, query
    latency, peak RSS, and post-commit embedding cost. Only a target-host pass may
    establish a 4 GiB Oracle profile; until then `core-4g-v1` continues to omit
    Oracle tools from its advertised surface.
-6. Evaluate over-time learning without conflation: source versions update
+8. Evaluate over-time learning without conflation: source versions update
    corporate evidence, reviewed proposals update durable memory, and bounded
    feedback updates attributed memory/route reward exactly once. No source
    record automatically activates memory or changes model weights.
-7. Keep the first action path separate. After `oracle_search`, every
+9. Keep the first action path separate. After `oracle_search`, every
    external-boundary tool and every local effect beyond read/draft already
    becomes `ask` for the rest of that session, across later runs and individual
    approvals until a new session; verify its exact approval, provider

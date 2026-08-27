@@ -2,8 +2,8 @@ import { relative, resolve, sep } from 'node:path';
 
 export const CROSS_PLATFORM_REPORT_SCHEMA = 'openprojects.cross-platform-qualification.v1';
 export const EXPECTED_PYTHON_TRAINING_TESTS = 38;
-export const EXPECTED_VITEST_SUITES = 123;
-export const EXPECTED_VITEST_TESTS = 473;
+export const EXPECTED_VITEST_SUITES = 135;
+export const EXPECTED_VITEST_TESTS = 563;
 export const WINDOWS_PYTHON_TRAINING_SKIP_REASON =
   'The reviewed MLX training safety suite depends on POSIX dir_fd and symlink-race semantics that the lab does not implement equivalently on native Windows; it remains a macOS/Linux-only gate.';
 
@@ -38,6 +38,11 @@ export const EXPECTED_VITEST_FILE_TESTS = Object.freeze({
   'tests/runtime.test.ts': 19,
   'tests/scheduler.test.ts': 6,
   'tests/semantic-embedding-eval.test.ts': 4,
+  'tests/sidecar-config.test.ts': 29,
+  'tests/sidecar-http.test.ts': 31,
+  'tests/sidecar-providers.test.ts': 11,
+  'tests/sidecar-runner.test.ts': 4,
+  'tests/sidecar-state.test.ts': 15,
   'tests/sqlite-migrations.test.ts': 8,
   'tests/storage.test.ts': 20,
   'tests/strict-json.test.ts': 5,
@@ -93,6 +98,10 @@ const WINDOWS_VITEST_SKIPS = Object.freeze([
   ['tests/unix-transport.test.ts', 'refuses to unlink a replacement socket inode'],
   ['tests/unix-transport.test.ts', 'sanitizes listen failures into endpoint-specific errors'],
   ['tests/unix-transport.test.ts', 'diagnoses but never removes an unresponsive crash-left socket'],
+  ['tests/sidecar-config.test.ts', 'refuses a symbolic-link config without following it'],
+  ['tests/sidecar-state.test.ts', 'refuses a symbolic-link pending page without reading its target'],
+  ['tests/sidecar-state.test.ts', 'refuses a symbolic-link state directory'],
+  ['tests/sidecar-state.test.ts', 'never follows or deletes a symbolic-link startup orphan'],
 ].map(([file, title]) => Object.freeze({ file, title })));
 
 const SUPPORTED_PLATFORMS = new Set(['darwin', 'linux', 'win32']);
