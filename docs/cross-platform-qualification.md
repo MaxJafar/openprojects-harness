@@ -90,7 +90,7 @@ from being mixed into a new run.
 The software corpus is fail-closed rather than a floating “whatever tests still
 exist” count. The current baseline is 41 files, 123 suites, and 473 registered
 Vitest assertions, with exact per-file counts. macOS expects zero framework
-skips, Linux expects one named macOS-alias fixture skip, and Windows expects 28
+skips, Linux expects two named macOS-alias fixture skips, and Windows expects 29
 named POSIX/macOS-only skips. Any missing file/assertion, extra or missing skip,
 or todo fails qualification. The POSIX Python lane likewise requires exactly 38
 tests and zero skips.
@@ -103,20 +103,29 @@ remain valuable for the operator's exact Windows and Mac versions.
 ## Current evidence status
 
 On 2026-08-27 a fresh native qualification of source commit
-`77651a98a53058312d6e0962fe89966a6880a867`, including the Corporate Oracle
-corpus and README cover, passed on `darwin/arm64` (Apple M3, 8 GiB): clean install, 473/473
-Vitest assertions across 41 files and 123 suites, 38/38 Python safety tests,
-zero framework skips, build/typecheck, packed-install smoke, the 233-file MIT
-package boundary, and zero production audit vulnerabilities. The retained
-14-file evidence set is stored in the private appliance evidence directory;
-its `evidence-manifest.json` SHA-256 is
-`ec0c8c60118bdd962e3f7748af66ee7a63bcadf5b1c456f5a1123239d8e23096`.
-The earlier 465-, 472-, and pre-cover 473-test Mac reports are historical and
-superseded.
+`ad02b19e62607e9c0f52402571ecb5c5931a8dc5`, including the Corporate Oracle
+corpus, README cover, and inode-pinned Unix socket cleanup, passed on
+`darwin/arm64` (Apple M3, 8 GiB): clean install, 473/473 Vitest assertions
+across 41 files and 123 suites, 38/38 Python safety tests, zero framework skips,
+build/typecheck, packed-install smoke, the 233-file MIT package boundary, and
+zero production audit vulnerabilities. The retained 14-file evidence set is
+stored in the private appliance evidence directory; its
+`evidence-manifest.json` SHA-256 is
+`a4768e74ba68f916ee9e8774f355b3b67d50c8ea667fcc286f3edd2e7ef94443`.
 
-This is commit-bound native Mac evidence, not a hosted CI result. Native Windows
-and hosted Ubuntu/Windows/macOS results remain pending; the checked-in workflow
-is configuration until its public-repository run completes.
+The same commit passed the public [cross-platform qualification workflow](https://github.com/MaxJafar/openprojects-harness/actions/runs/33031375045):
+native core jobs on macOS 15 ARM64, Ubuntu 24.04 x64, and Windows Server 2025
+x64, plus the isolated AI SDK/MCP interoperability and production-audit job on
+all three systems. The uploaded qualification ZIP digests were:
+
+- macOS: `sha256:9216015b21d0e3eb899e08a0221b29758bb9c822874241f29fd5752aec459a79`
+- Ubuntu: `sha256:1279272b1dde641776eda5c3d683eaa9b53be194ea053fc6859d2f4c38da5970`
+- Windows: `sha256:36907e7c9646861f4d60a6314342ab88d6a4706f84b5c5c3b3756a43a4e2cbe8`
+
+These hosted results prove clean-runner compatibility at that commit; they do
+not replace a deployment-specific NTFS ACL review or a native qualification on
+the owner's physical Windows device. The earlier 465-, 472-, and pre-hardening
+473-test Mac reports are historical and superseded.
 
 ## Platform boundaries
 
