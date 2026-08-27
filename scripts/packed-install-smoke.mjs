@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { unexpectedPackageImportStderr } from './cross-platform-report.mjs';
+
 const MAX_COMMAND_OUTPUT_BYTES = 2 * 1024 * 1024;
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const npmCli = process.env.npm_execpath?.trim();
@@ -68,7 +70,8 @@ try {
        throw new Error('package root exports are incomplete');
      }`,
   ], consumer);
-  if (imported.stderr.trim()) throw new Error(`Package import wrote unexpected stderr: ${imported.stderr.trim()}`);
+  const unexpectedStderr = unexpectedPackageImportStderr(imported.stderr);
+  if (unexpectedStderr) throw new Error(`Package import wrote unexpected stderr: ${unexpectedStderr}`);
 
   console.log(
     `Packed install smoke passed: ${packResult.filename}; `

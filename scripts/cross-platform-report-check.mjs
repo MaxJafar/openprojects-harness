@@ -13,6 +13,7 @@ import {
   parseVitestReport,
   platformCoverage,
   renderQualificationSummary,
+  unexpectedPackageImportStderr,
   validateVitestBaseline,
 } from './cross-platform-report.mjs';
 
@@ -52,6 +53,24 @@ test('keeps Mac and Linux hardware claims narrower than CI coverage', () => {
 test('records the exact Python training safety test count', () => {
   assert.equal(parsePythonTestCount(`Ran ${EXPECTED_PYTHON_TRAINING_TESTS} tests in 0.481s\n\nOK\n`), 38);
   assert.equal(parsePythonTestCount('test_example ... ok\nOK\n'), null);
+});
+
+test('permits only Node\'s exact node:sqlite import warning on stderr', () => {
+  const warning = [
+    '(node:3674) ExperimentalWarning: SQLite is an experimental feature and might change at any time',
+    '(Use `node --trace-warnings ...` to show where the warning was created)',
+  ].join('\n');
+
+  assert.equal(unexpectedPackageImportStderr(''), '');
+  assert.equal(unexpectedPackageImportStderr(`${warning}\n`), '');
+  assert.equal(unexpectedPackageImportStderr(warning.replaceAll('\n', '\r\n')), '');
+  assert.equal(unexpectedPackageImportStderr(`${warning}\n${warning}`), `${warning}\n${warning}`);
+  assert.equal(unexpectedPackageImportStderr(`application log\n${warning}`), `application log\n${warning}`);
+  assert.equal(unexpectedPackageImportStderr(`${warning}\napplication log`), `${warning}\napplication log`);
+  assert.equal(
+    unexpectedPackageImportStderr('(node:1) DeprecationWarning: unexpected'),
+    '(node:1) DeprecationWarning: unexpected',
+  );
 });
 
 test('pins the complete Vitest corpus and exact platform skip multisets', () => {

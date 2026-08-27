@@ -7,6 +7,8 @@ export const EXPECTED_VITEST_TESTS = 473;
 export const WINDOWS_PYTHON_TRAINING_SKIP_REASON =
   'The reviewed MLX training safety suite depends on POSIX dir_fd and symlink-race semantics that the lab does not implement equivalently on native Windows; it remains a macOS/Linux-only gate.';
 
+const NODE_SQLITE_EXPERIMENTAL_WARNING = /^\(node:\d+\) ExperimentalWarning: SQLite is an experimental feature and might change at any time\r?\n\(Use `node --trace-warnings \.\.\.` to show where the warning was created\)$/u;
+
 export const EXPECTED_VITEST_FILE_TESTS = Object.freeze({
   'tests/api-client.test.ts': 23,
   'tests/configured-integrations.test.ts': 4,
@@ -283,6 +285,12 @@ export function parsePythonTestCount(output) {
   if (!match) return null;
   const count = Number(match[1]);
   return Number.isSafeInteger(count) && count >= 0 ? count : null;
+}
+
+export function unexpectedPackageImportStderr(output) {
+  const stderr = String(output).trim();
+  if (!stderr || NODE_SQLITE_EXPERIMENTAL_WARNING.test(stderr)) return '';
+  return stderr;
 }
 
 export function renderQualificationSummary(report) {
