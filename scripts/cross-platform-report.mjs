@@ -58,6 +58,11 @@ const POSIX_CASE_ALIAS_SKIP = Object.freeze({
   title: 'refuses case-only macOS aliases across model and runtime evidence roles',
 });
 
+const MACOS_WIZARD_CASE_ALIAS_SKIP = Object.freeze({
+  file: 'tests/wizard.test.ts',
+  title: 'refuses case-only aliases between protected artifacts on macOS',
+});
+
 const WINDOWS_VITEST_SKIPS = Object.freeze([
   ['tests/control-auth.test.ts', 'rejects group- or world-readable credentials'],
   ['tests/control-auth.test.ts', 'refuses symbolic links even when their target is protected'],
@@ -72,6 +77,7 @@ const WINDOWS_VITEST_SKIPS = Object.freeze([
   ['tests/wizard.test.ts', 'rejects an intermediate symbolic-link component in reviewed artifact paths'],
   ['tests/wizard.test.ts', 'rejects an existing database symlink before publishing configuration'],
   ['tests/wizard.test.ts', 'rejects an existing owner-only directory that is not mode 0700'],
+  [MACOS_WIZARD_CASE_ALIAS_SKIP.file, MACOS_WIZARD_CASE_ALIAS_SKIP.title],
   [POSIX_CASE_ALIAS_SKIP.file, POSIX_CASE_ALIAS_SKIP.title],
   ['tests/qualification.test.ts', 'qualifies whisper.cpp only after a known-audio transcript and reports exact hashes'],
   ['tests/api-client.test.ts', 'attaches the authenticated API client through a protected Unix socket'],
@@ -268,7 +274,7 @@ export function validateVitestBaseline(vitest, platform) {
 
 export function expectedVitestSkips(platform) {
   if (platform === 'win32') return [...WINDOWS_VITEST_SKIPS];
-  if (platform === 'linux') return [POSIX_CASE_ALIAS_SKIP];
+  if (platform === 'linux') return [POSIX_CASE_ALIAS_SKIP, MACOS_WIZARD_CASE_ALIAS_SKIP];
   if (platform === 'darwin') return [];
   return [];
 }
