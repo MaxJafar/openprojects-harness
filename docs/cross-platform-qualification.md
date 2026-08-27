@@ -102,20 +102,21 @@ remain valuable for the operator's exact Windows and Mac versions.
 
 ## Current evidence status
 
-On 2026-08-27 a fresh native working-tree qualification including the Corporate
-Oracle corpus passed on `darwin/arm64` (Apple M3, 8 GiB): clean install, 473/473
+On 2026-08-27 a fresh native qualification of source commit
+`77651a98a53058312d6e0962fe89966a6880a867`, including the Corporate Oracle
+corpus and README cover, passed on `darwin/arm64` (Apple M3, 8 GiB): clean install, 473/473
 Vitest assertions across 41 files and 123 suites, 38/38 Python safety tests,
-zero framework skips, build/typecheck, packed-install smoke, the 232-file MIT
+zero framework skips, build/typecheck, packed-install smoke, the 233-file MIT
 package boundary, and zero production audit vulnerabilities. The retained
 14-file evidence set is stored in the private appliance evidence directory;
 its `evidence-manifest.json` SHA-256 is
-`59d168aef826ecd4305545e84b04d59b9afdd2643b7c6fb14e1d698f24dee774`.
-The earlier 465- and 472-test Mac reports are now historical and superseded.
+`ec0c8c60118bdd962e3f7748af66ee7a63bcadf5b1c456f5a1123239d8e23096`.
+The earlier 465-, 472-, and pre-cover 473-test Mac reports are historical and
+superseded.
 
-This is current local Mac evidence, not a release-commit claim: the workspace
-is not yet a Git repository. Native Windows and hosted Ubuntu/Windows/macOS
-results remain pending; the checked-in workflow is configuration, not evidence
-of a run that has not happened.
+This is commit-bound native Mac evidence, not a hosted CI result. Native Windows
+and hosted Ubuntu/Windows/macOS results remain pending; the checked-in workflow
+is configuration until its public-repository run completes.
 
 ## Platform boundaries
 
