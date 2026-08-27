@@ -89,14 +89,20 @@ function heldState(
 ): SidecarState {
   const pendingPath = join(directory.path, PENDING_NAME);
   let closed = false;
-  let validatedPendingIdentity: FileIdentity | undefined;
+  let validatedPending: OpenPendingSnapshot | undefined;
+  const releaseValidatedPending = (): void => {
+    const held = validatedPending;
+    validatedPending = undefined;
+    if (held) closeSync(held.descriptor);
+  };
   return Object.freeze({
     directory: directory.path,
     pendingPath,
     loadPending(): PendingSidecarPage | undefined {
       assertOpen(closed);
-      const snapshot = readPendingSnapshot(pendingPath, directory, loaded.contractSha256);
-      validatedPendingIdentity = snapshot?.identity;
+      releaseValidatedPending();
+      const snapshot = openPendingSnapshot(pendingPath, directory, loaded.contractSha256);
+      validatedPending = snapshot;
       return snapshot?.pending;
     },
     stage(body: string, createdAt: string): PendingSidecarPage {
@@ -116,37 +122,42 @@ function heldState(
       if (Buffer.byteLength(serialized, 'utf8') > MAX_PENDING_BYTES) {
         throw new Error('Sidecar pending page exceeds its local spool limit');
       }
-      validatedPendingIdentity = atomicWrite(pendingPath, serialized, directory);
+      releaseValidatedPending();
+      validatedPending = atomicWrite(pendingPath, serialized, pending, directory);
       return pending;
     },
     clear(expectedBodySha256: string): void {
       assertOpen(closed);
-      const snapshot = readPendingSnapshot(pendingPath, directory, loaded.contractSha256);
+      const snapshot = validatedPending
+        ?? openPendingSnapshot(pendingPath, directory, loaded.contractSha256);
       if (!snapshot) {
-        validatedPendingIdentity = undefined;
         return;
       }
-      if (
-        validatedPendingIdentity
-        && !sameFile(validatedPendingIdentity, snapshot.identity)
-      ) {
-        throw new Error('Sidecar pending page changed since it was last validated');
-      }
-      validatedPendingIdentity = snapshot.identity;
+      validatedPending = snapshot;
+      assertHeldPendingCurrent(
+        pendingPath,
+        snapshot,
+        directory,
+        'Sidecar pending page changed since it was last validated',
+      );
       if (snapshot.pending.bodySha256 !== expectedBodySha256) {
         throw new Error('Sidecar refused to clear a different pending page');
       }
-      claimAndClearPending(pendingPath, snapshot.identity, directory);
-      validatedPendingIdentity = undefined;
+      claimAndClearPending(pendingPath, snapshot, directory);
+      releaseValidatedPending();
       syncDirectory(directory);
     },
     close(): void {
       if (closed) return;
       closed = true;
       try {
-        lock.release();
+        releaseValidatedPending();
       } finally {
-        closeProtectedDirectory(directory);
+        try {
+          lock.release();
+        } finally {
+          closeProtectedDirectory(directory);
+        }
       }
     },
   });
@@ -205,20 +216,6 @@ function prepareDirectory(value: string): ProtectedDirectory {
   }
 }
 
-function readPendingSnapshot(
-  path: string,
-  directory: ProtectedDirectory,
-  contractSha256: string,
-): PendingSnapshot | undefined {
-  const opened = openPendingSnapshot(path, directory, contractSha256);
-  if (!opened) return undefined;
-  try {
-    return Object.freeze({ pending: opened.pending, identity: opened.identity });
-  } finally {
-    closeSync(opened.descriptor);
-  }
-}
-
 function openPendingSnapshot(
   path: string,
   directory: ProtectedDirectory,
@@ -262,7 +259,7 @@ function openPendingSnapshot(
     const current = lstatSync(path, { bigint: true });
     if (
       current.isSymbolicLink()
-      || !sameFile(fileIdentity(after), fileIdentity(current))
+      || !sameStableSnapshot(after, current)
     ) {
       throw new Error('Sidecar pending page changed while it was being read');
     }
@@ -373,8 +370,9 @@ function parsePending(text: string): PendingSidecarPage {
 function atomicWrite(
   path: string,
   contents: string,
+  pending: PendingSidecarPage,
   directory: ProtectedDirectory,
-): FileIdentity {
+): OpenPendingSnapshot {
   const temporary = join(directory.path, `.pending-${process.pid}-${randomUUID()}.tmp`);
   let descriptor: number | undefined;
   let temporaryIdentity: FileIdentity | undefined;
@@ -391,8 +389,6 @@ function atomicWrite(
     const written = fstatSync(descriptor, { bigint: true });
     assertPendingStats(written);
     temporaryIdentity = fileIdentity(written);
-    closeSync(descriptor);
-    descriptor = undefined;
     assertDirectoryIdentity(directory);
     const temporaryStats = lstatSync(temporary, { bigint: true });
     if (!sameFile(temporaryIdentity, fileIdentity(temporaryStats))) {
@@ -417,7 +413,21 @@ function atomicWrite(
     }
     unlinkIfHeld(temporary, temporaryIdentity);
     syncDirectory(directory);
-    return temporaryIdentity;
+    const held = fstatSync(descriptor, { bigint: true });
+    const current = lstatSync(path, { bigint: true });
+    assertPendingStats(held);
+    assertPendingStats(current);
+    if (!sameStableSnapshot(held, current)) {
+      throw new Error('Sidecar pending page changed immediately after publication');
+    }
+    const heldDescriptor = descriptor;
+    descriptor = undefined;
+    return Object.freeze({
+      pending,
+      identity: fileIdentity(held),
+      descriptor: heldDescriptor,
+      stats: held,
+    });
   } catch (error) {
     if (descriptor !== undefined) closeSync(descriptor);
     try {
@@ -431,18 +441,15 @@ function atomicWrite(
 
 function claimAndClearPending(
   path: string,
-  expectedIdentity: FileIdentity,
+  snapshot: OpenPendingSnapshot,
   directory: ProtectedDirectory,
 ): void {
-  assertDirectoryIdentity(directory);
-  const current = lstatSync(path, { bigint: true });
-  if (
-    current.isSymbolicLink()
-    || !current.isFile()
-    || !sameFile(expectedIdentity, fileIdentity(current))
-  ) {
-    throw new Error('Sidecar pending page changed before it could be cleared');
-  }
+  const heldBeforeClaim = assertHeldPendingCurrent(
+    path,
+    snapshot,
+    directory,
+    'Sidecar pending page changed before it could be cleared',
+  );
 
   // Moving the validated leaf to an unpredictable private name first means a
   // concurrently installed replacement at the public pathname is never the
@@ -450,15 +457,48 @@ function claimAndClearPending(
   const claimed = join(directory.path, `.pending-clear-${process.pid}-${randomUUID()}.tmp`);
   renameSync(path, claimed);
   const claimedStats = lstatSync(claimed, { bigint: true });
+  const heldAfterClaim = fstatSync(snapshot.descriptor, { bigint: true });
   if (
     claimedStats.isSymbolicLink()
     || !claimedStats.isFile()
-    || !sameFile(expectedIdentity, fileIdentity(claimedStats))
+    // Some filesystems update ctime when the directory entry is renamed. The
+    // open descriptor pins the inode, while size/mode/mtime still detect a
+    // concurrent content or permission change across the claim.
+    || !sameClaimTransition(heldBeforeClaim, heldAfterClaim)
+    || !sameStableSnapshot(heldAfterClaim, claimedStats)
   ) {
     throw new Error('Sidecar pending page changed while it was being claimed for clearing');
   }
   assertDirectoryIdentity(directory);
-  unlinkIfHeld(claimed, expectedIdentity);
+  unlinkIfHeld(claimed, snapshot.identity);
+}
+
+function assertHeldPendingCurrent(
+  path: string,
+  snapshot: OpenPendingSnapshot,
+  directory: ProtectedDirectory,
+  errorMessage: string,
+): BigIntStats {
+  assertDirectoryIdentity(directory);
+  let held: BigIntStats;
+  let current: BigIntStats;
+  try {
+    held = fstatSync(snapshot.descriptor, { bigint: true });
+    current = lstatSync(path, { bigint: true });
+  } catch (error) {
+    throw new Error(errorMessage, { cause: error });
+  }
+  assertPendingStats(held);
+  assertPendingStats(current);
+  if (
+    current.isSymbolicLink()
+    || !sameStableSnapshot(snapshot.stats, held)
+    || !sameStableSnapshot(held, current)
+  ) {
+    throw new Error(errorMessage);
+  }
+  assertDirectoryIdentity(directory);
+  return held;
 }
 
 function syncDirectory(directory: ProtectedDirectory): void {
@@ -527,6 +567,13 @@ function sameStableSnapshot(left: BigIntStats, right: BigIntStats): boolean {
     && left.mode === right.mode
     && left.mtimeNs === right.mtimeNs
     && left.ctimeNs === right.ctimeNs;
+}
+
+function sameClaimTransition(left: BigIntStats, right: BigIntStats): boolean {
+  return sameFile(fileIdentity(left), fileIdentity(right))
+    && left.size === right.size
+    && left.mode === right.mode
+    && left.mtimeNs === right.mtimeNs;
 }
 
 function unlinkIfHeld(path: string, expectedIdentity: FileIdentity): void {

@@ -168,9 +168,10 @@ is safe to delete.
 
 POSIX enforces directory/file modes; Windows requires an independent NTFS ACL
 review. The state directory is canonicalized and inode-checked, and pending
-files are read and cleared through identity-stable snapshots. The state
-directory and every ancestor must still be owned/protected so an untrusted
-local user cannot rename and swap path components between filesystem
+files retain their validated descriptor through the identity-stable claim and
+unlink, preventing immediate inode reuse from disguising a replacement. The
+state directory and every ancestor must still be owned/protected so an
+untrusted local user cannot rename and swap path components between filesystem
 operations.
 
 ## Initial projection
